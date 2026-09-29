@@ -102,6 +102,34 @@ function UI.Cadre(x, y, w, h, fond, surligne)
 	surface.DrawRect(x + w - c, y + h - t, c, t) surface.DrawRect(x + w - t, y + h - c, t, c)
 end
 
+-- Polygones (à créer une fois et garder en cache, puis surface.DrawPoly)
+function UI.PolyCercle(cx, cy, r, segments)
+	local poly = {}
+	segments = segments or 24
+	for i = 0, segments - 1 do
+		local a = i / segments * math.pi * 2
+		poly[#poly + 1] = { x = cx + math.cos(a) * r, y = cy + math.sin(a) * r }
+	end
+	return poly
+end
+
+function UI.PolyLosange(cx, cy, r)
+	return { { x = cx, y = cy - r }, { x = cx + r, y = cy }, { x = cx, y = cy + r }, { x = cx - r, y = cy } }
+end
+
+function UI.DessinerPoly(poly, col)
+	draw.NoTexture()
+	surface.SetDrawColor(col)
+	surface.DrawPoly(poly)
+end
+
+-- Séparateur orné : ligne dorée avec un losange au centre
+function UI.SeparateurOrne(x, y, w, poly)
+	surface.SetDrawColor(COL.Or.r, COL.Or.g, COL.Or.b, 110)
+	surface.DrawRect(x, y, w, 1)
+	if poly then UI.DessinerPoly(poly, COL.Or) end
+end
+
 -- Séparateur doré horizontal
 function UI.Separateur(x, y, w)
 	surface.SetDrawColor(COL.Or.r, COL.Or.g, COL.Or.b, 120)

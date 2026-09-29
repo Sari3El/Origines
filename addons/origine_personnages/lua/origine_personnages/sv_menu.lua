@@ -143,6 +143,7 @@ local function tirer(ply, p, estReroll)
 	net.Send(ply)
 	local copie = { prenom = p.prenom, nom = p.nom, race = p.race }
 	timer.Simple(C.DureeAnimationTirage, function() annoncerTirage(copie) end)
+	hook.Run("origine_Tirage", ply, p, estReroll, ancienne)
 end
 
 ---------------------------------------------------------------------------
@@ -217,6 +218,7 @@ ORIGINE.NetRecevoir("origine_menu_creer", function(ply)
 
 		local p = nouveauPerso(ply, slot, prenom, nom, race)
 		ply.OriginePersos[slot] = p
+		hook.Run("origine_PersonnageCree", ply, p)
 		if race then
 			-- Slots EVENT et Staff : pas de tirage, le personnage est prêt
 			finaliser(ply, p)
@@ -287,8 +289,10 @@ ORIGINE.NetRecevoir("origine_menu_renommer", function(ply)
 		if not IsValid(ply) then return end
 		ply.OrigineOperation = nil
 		if not libre then return erreur(ply, "Ce nom est déjà pris.") end
+		local ancien = p.prenom .. " " .. p.nom
 		p.prenom, p.nom, p.nom_a_redonner = prenom, nom, false
 		ORIGINE.EcrirePerso(p)
+		hook.Run("origine_PersonnageRenomme", ply, p, ancien)
 		ORIGINE.EnvoyerMenu(ply, slot)
 	end)
 end, 2)

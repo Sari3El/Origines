@@ -104,6 +104,7 @@ function DB.CreerTables()
 			reroll_gratuit INTEGER NOT NULL DEFAULT 0,
 			event_debloque INTEGER NOT NULL DEFAULT 0,
 			event_race VARCHAR(64),
+			vip_debloque INTEGER NOT NULL DEFAULT 0,
 			migration_covan BIGINT,
 			migration_faite INTEGER NOT NULL DEFAULT 0,
 			premiere_connexion INTEGER
@@ -165,11 +166,51 @@ function DB.CreerTables()
 		)]],
 	}
 	for _, r in ipairs(requetes) do DB.Requete(r, nil, nil, true) end
-	-- Index (ignorés s'ils existent déjà)
-	if DB.Mode == "sqlite" then
-		DB.Requete("CREATE INDEX IF NOT EXISTS origine_idx_nom ON origine_personnages (nom_cle)")
-		DB.Requete("CREATE INDEX IF NOT EXISTS origine_idx_hist_cible ON origine_historique (cible_sid)")
-		DB.Requete("CREATE INDEX IF NOT EXISTS origine_idx_hist_staff ON origine_historique (staff_sid)")
+
+	-- Colonnes ajoutées après la première version (bases déjà créées)
+	DB.AjouterColonne("origine_comptes", "vip_debloque", "INTEGER NOT NULL DEFAULT 0")
+
+	DB.CreerIndex("origine_idx_nom", "origine_personnages", "nom_cle")
+	DB.CreerIndex("origine_idx_hist_cible", "origine_historique", "cible_sid")
+	DB.CreerIndex("origine_idx_hist_staff", "origine_historique", "staff_sid")
+end
+
+-- Déclaration d'une clé auto-incrémentée selon le moteur
+function DB.AutoIncrement()
+	return auto()
+end
+
+-- Ajoute une colonne si elle n'existe pas encore (requêtes synchrones, au démarrage)
+function DB.AjouterColonne(nomTable, colonne, definition)
+	local existe = false
+	if DB.Mode == "mysql" then
+		DB.Requete("SELECT COLUMN_NAME FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = ?",
+			{ nomTable, colonne }, function(lignes)
+			existe = lignes ~= nil and #lignes > 0
+		end, true)
+	else
+		for _, l in ipairs(sql.Query("PRAGMA table_info(" .. nomTable .. ")") or {}) do
+			if l.name == colonne then existe = true end
+		end
+	end
+	if not existe then
+		DB.Requete("ALTER TABLE " .. nomTable .. " ADD COLUMN " .. colonne .. " " .. definition, nil, nil, true)
+	end
+end
+
+-- Crée un index s'il n'existe pas encore
+function DB.CreerIndex(nom, nomTable, colonnes)
+	if DB.Mode == "mysql" then
+		local existe = false
+		DB.Requete("SELECT INDEX_NAME FROM information_schema.STATISTICS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND INDEX_NAME = ?",
+			{ nomTable, nom }, function(lignes)
+			existe = lignes ~= nil and #lignes > 0
+		end, true)
+		if not existe then
+			DB.Requete("CREATE INDEX " .. nom .. " ON " .. nomTable .. " (" .. colonnes .. ")", nil, nil, true)
+		end
+	else
+		DB.Requete("CREATE INDEX IF NOT EXISTS " .. nom .. " ON " .. nomTable .. " (" .. colonnes .. ")")
 	end
 end
 

@@ -26,9 +26,13 @@ TEXT_ALIGN_LEFT TEXT_ALIGN_CENTER TEXT_ALIGN_RIGHT TEXT_ALIGN_TOP TEXT_ALIGN_BOT
 TOP BOTTOM LEFT RIGHT FILL
 COLLISION_GROUP_IN_VEHICLE COLLISION_GROUP_PLAYER COLLISION_GROUP_WEAPON
 SOLID_VPHYSICS MOVETYPE_VPHYSICS SIMPLE_USE MASK_SHOT MASK_VISIBLE
-DMG_BURN DMG_DROWN IN_JUMP IN_DUCK
-RunConsoleCommand
+DMG_BURN DMG_DROWN DMG_BLAST DMG_BUCKSHOT DMG_BULLET DMG_CLUB DMG_CRUSH DMG_FALL DMG_POISON DMG_SHOCK DMG_SLASH DMG_VEHICLE Player gameevent IN_JUMP IN_DUCK TEAM_UNASSIGNED TEAM_CONNECTING TEAM_SPECTATOR
+RunConsoleCommand cookie gui input SetClipboardText MOUSE_RIGHT KEY_ENTER KEY_PAD_ENTER KEY_UP KEY_DOWN KEY_TAB KEY_ESCAPE
 """.split())
+
+
+# Seules globales que les addons ont le droit de créer ou modifier
+ECRITURES_AUTORISEES = {"ORIGINE", "ORIGINE_INV"}
 
 
 class Portee:
@@ -115,6 +119,8 @@ class Analyse:
                 if isinstance(t, astnodes.Name):
                     if not portee.contient(t.id):
                         self.definies.add(t.id)
+                        if t.id not in ECRITURES_AUTORISEES:
+                            self.inconnues.setdefault("(écriture globale) " + t.id, getattr(t, "line", None) or "?")
                 else:
                     self.noeud(t, portee)
             return
@@ -196,7 +202,7 @@ for f in sorted(racine.rglob("*.lua")):
 problemes = 0
 for a in resultats:
     for nom, ligne in sorted(a.inconnues.items()):
-        if nom in definies_globales:
+        if nom in definies_globales and not nom.startswith("(écriture"):
             continue
         problemes += 1
         print(f"GLOBALE INCONNUE {nom}  ({a.fichier.relative_to(racine)}:{ligne})")

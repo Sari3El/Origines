@@ -7,9 +7,9 @@ ORIGINE.ConfigHUD = {
 	-- Espace (en pixels à 1080p) entre le bas de la chatbox et le HUD
 	Marge = 8,
 
-	-- Taille du bloc à 1080p (adaptée automatiquement de 720p à 4K)
-	Largeur = 380,
-	Hauteur = 196,
+	-- Largeur du bloc à 1080p (adaptée automatiquement de 720p à 4K).
+	-- La hauteur dépend des jauges affichées (la faim est masquée si le module faim de DarkRP est désactivé).
+	Largeur = 400,
 
 	-- S'il n'y a pas assez de place sous la chatbox, le HUD est réduit
 	-- jusqu'à cette échelle minimum ; en dessous, il se place à droite de la chatbox.
@@ -20,10 +20,14 @@ ORIGINE.ConfigHUD = {
 	DelaiTraine = 0.35,  -- secondes avant que la traînée claire rejoigne la valeur
 	VitesseTraine = 0.8, -- vitesse de la traînée (fraction de jauge par seconde)
 
+	-- Covan : le montant défile jusqu'à la nouvelle valeur, la variation (+/-) s'affiche un instant
+	DureeVariationCovan = 2.5,
+
 	-- Infos au-dessus de la tête des joueurs
 	InfosTete = {
 		Distance = 400,           -- distance d'affichage normale
 		DistanceDiscretion = 120, -- races avec « discrétion » : visibles seulement de près
+		Rafraichissement = 0.2,   -- secondes entre deux tests de visibilité
 	},
 
 	-- Éléments masqués et remplacés par le HUD.

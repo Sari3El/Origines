@@ -18,6 +18,7 @@ util.AddNetworkString("origine_staff_ouvrir")
 util.AddNetworkString("origine_staff_resultats")
 util.AddNetworkString("origine_staff_fiche")
 util.AddNetworkString("origine_staff_historique")
+util.AddNetworkString("origine_staff_logs")
 
 ---------------------------------------------------------------------------
 -- Permission
@@ -152,7 +153,7 @@ recevoirStaff("origine_staff_recherche", function(ply)
 			end
 		end
 		net.Start("origine_staff_resultats")
-			net.WriteTable(resultats)
+			ORIGINE.NetEcrireTable(resultats)
 		net.Send(ply)
 	end)
 end, 3)
@@ -172,6 +173,7 @@ function S.EnvoyerFiche(staff, sid)
 			compte = compte and {
 				rerolls = compte.rerolls, event_debloque = compte.event_debloque,
 				event_race = compte.event_race, dernier_slot = compte.dernier_slot,
+				vip_debloque = compte.vip_debloque or 0,
 			} or nil,
 			slots = {},
 			copies = {},
@@ -180,7 +182,8 @@ function S.EnvoyerFiche(staff, sid)
 		for s = 1, ORIGINE.NB_SLOTS do
 			local acces
 			if s <= 2 then acces = true
-			elseif s == ORIGINE.SLOT_VIP then acces = ORIGINE.DansListe(C.GroupesVIP, groupe)
+			elseif s == ORIGINE.SLOT_VIP then
+				acces = ORIGINE.DansListe(C.GroupesVIP, groupe) or (compte and compte.vip_debloque == 1) or false
 			elseif s == ORIGINE.SLOT_EVENT then acces = compte and compte.event_debloque == 1 or false
 			else acces = ORIGINE.DansListe(C.GroupesStaff, groupe) end
 			local p = persos and persos[s]
@@ -200,7 +203,7 @@ function S.EnvoyerFiche(staff, sid)
 			restants = restants - 1
 			if restants > 0 or not IsValid(staff) then return end
 			net.Start("origine_staff_fiche")
-				net.WriteTable(fiche)
+				ORIGINE.NetEcrireTable(fiche)
 			net.Send(staff)
 		end
 		for s = 1, ORIGINE.NB_SLOTS do
@@ -389,9 +392,39 @@ function S.Event(staff, sid, debloque, race)
 end
 
 ---------------------------------------------------------------------------
+-- Slot 3 : débloqué pour un joueur (en plus des groupes VIP)
+---------------------------------------------------------------------------
+function S.SlotVIP(staff, sid, debloque)
+	S.Donnees(sid, function(compte, persos, cible)
+		if not compte then return ORIGINE.Notifier(staff, "Ce joueur ne s'est jamais connecté.", "erreur") end
+		local avant = compte.vip_debloque or 0
+		compte.vip_debloque = debloque and 1 or 0
+		ORIGINE.EcrireCompte(compte)
+		if cible then
+			if cible.OrigineSlot == ORIGINE.SLOT_VIP and not ORIGINE.SlotAccessible(cible, ORIGINE.SLOT_VIP, compte) then
+				ORIGINE.QuitterPerso(cible, { message = "Le slot 3 est maintenant verrouillé." })
+			elseif ORIGINE.EnMenu(cible) then
+				ORIGINE.EnvoyerMenu(cible)
+			end
+		end
+		local p = persos and persos[ORIGINE.SLOT_VIP]
+		H.Ajouter({
+			type = "vip_slot", staff = staff, cible_sid = sid, cible_slot = ORIGINE.SLOT_VIP,
+			cible_nom = p and nomPerso(p) or compte.nom_steam, avant = { debloque = avant },
+			apres = { debloque = compte.vip_debloque },
+		})
+		succes(staff, sid)
+	end)
+end
+
+---------------------------------------------------------------------------
 -- Actions
 ---------------------------------------------------------------------------
 local ACTIONS = {}
+
+ACTIONS.vip_slot = function(staff, sid, _, etat)
+	S.SlotVIP(staff, sid, etat == "1")
+end
 
 -- Modifier la race d'un slot (sans tirage)
 ACTIONS.race = function(staff, sid, slot, race)
@@ -537,7 +570,8 @@ recevoirStaff("origine_staff_action", function(ply)
 	if not fn then return end
 	local sansCible = action == "annuler" or action == "rerolls_tous"
 	if not sansCible and not estSteamID64(sid) then return end
-	if not sansCible and action ~= "rerolls" and action ~= "event" and (slot < 1 or slot > ORIGINE.NB_SLOTS) then return end
+	local sansSlot = action == "rerolls" or action == "event" or action == "vip_slot"
+	if not sansCible and not sansSlot and (slot < 1 or slot > ORIGINE.NB_SLOTS) then return end
 	fn(ply, sid, slot, a, b, n)
 end, 5)
 
@@ -590,7 +624,29 @@ recevoirStaff("origine_staff_historique", function(ply)
 			}
 		end
 		net.Start("origine_staff_historique")
-			net.WriteTable(res)
+			ORIGINE.NetEcrireTable(res)
 		net.Send(ply)
 	end)
 end, 3)
+
+---------------------------------------------------------------------------
+-- Logs : catégorie, joueur, texte, période, page
+---------------------------------------------------------------------------
+recevoirStaff("origine_staff_logs", function(ply)
+	local filtres = {
+		categorie = net.ReadString(),
+		joueur = ORIGINE.Tronquer(net.ReadString(), 64),
+		texte = ORIGINE.Tronquer(net.ReadString(), 64),
+		periode = net.ReadUInt(32),
+		page = net.ReadUInt(16),
+	}
+	ORIGINE.Logs.Rechercher(filtres, function(lignes, suite, page)
+		if not IsValid(ply) then return end
+		net.Start("origine_staff_logs")
+			net.WriteString(filtres.categorie)
+			net.WriteUInt(page, 16)
+			net.WriteBool(suite)
+			ORIGINE.NetEcrireTable(lignes)
+		net.Send(ply)
+	end)
+end, 4)

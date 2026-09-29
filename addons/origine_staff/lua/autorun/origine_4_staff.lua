@@ -12,7 +12,7 @@ end
 
 local DOSSIER = "origine_staff/"
 local PARTAGES = { "sh_config.lua" }
-local SERVEUR = { "sv_staff.lua" }
+local SERVEUR = { "sv_staff.lua", "sv_logs.lua" }
 local CLIENT_ = { "cl_staff.lua" }
 
 for _, f in ipairs(PARTAGES) do

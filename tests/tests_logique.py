@@ -175,5 +175,21 @@ res = lua.eval("""function()
 end""")()
 verifier("tout transférer (inventaire presque plein)", tuple(res) == (20, 2, 22), str(tuple(res)))
 
+# --- Coupe de texte sans casser les accents --------------------------------
+verifier("Tronquer ASCII", O.Tronquer("abcdef", 3) == "abc")
+verifier("Tronquer accents", O.Tronquer("éèàçù", 3) == "éèà", O.Tronquer("éèàçù", 3))
+verifier("Tronquer court", O.Tronquer("abc", 10) == "abc")
+
+# --- Slot 3 : VIP ou débloqué par le staff ---------------------------------
+acces = lua.eval("""function(groupe, compte)
+	local ply = { GetUserGroup = function() return groupe end }
+	return (ORIGINE.SlotAccessible(ply, 3, compte))
+end""")
+verifier("slot 3 : VIP", acces("vip", lua.table()) is True)
+verifier("slot 3 : non VIP verrouillé", acces("user", lua.table(vip_debloque=0)) is False)
+verifier("slot 3 : débloqué par le staff", acces("user", lua.table(vip_debloque=1)) is True)
+verifier("slot 4 : EVENT verrouillé", lua.eval("function() return (ORIGINE.SlotAccessible({ GetUserGroup = function() return 'user' end }, 4, {})) end")() is False)
+verifier("slot 5 : staff", lua.eval("function() return (ORIGINE.SlotAccessible({ GetUserGroup = function() return 'admin' end }, 5, {})) end")() is True)
+
 print(f"\n{total - echecs}/{total} tests réussis")
 sys.exit(1 if echecs else 0)

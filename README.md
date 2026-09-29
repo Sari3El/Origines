@@ -1,18 +1,19 @@
 # Médiéval RP — Origine du monde
 
-Quatre addons Garry's Mod (DarkRP + ULX/ULib) réalisés d'après le cahier des charges
-« Médiéval RP : Origine du monde ».
+Cinq addons Garry's Mod (DarkRP + ULX/ULib) réalisés d'après le cahier des charges
+« Médiéval RP : Origine du monde », plus un chat à la même charte.
 
 | Dossier | Contenu | Dépend de |
 |---|---|---|
 | `origine_personnages` | Slots, menu et création de personnage, races, rerolls, SWEPs de race, sauvegarde SQL, intégration DarkRP | DarkRP, ULX |
 | `origine_hud` | HUD sous la chatbox, compteur de munitions, infos au-dessus de la tête | origine_personnages |
 | `origine_inventaire` | SWEP Sacoche, inventaire par personnage, sac de mort, liste des entités autorisées | origine_personnages |
-| `origine_staff` | Menu `!origine`, actions staff, historique, copies avant CK et RPK | origine_personnages, origine_inventaire |
+| `origine_staff` | Menu `!origine`, actions staff, historique, copies avant CK et RPK, logs du serveur | origine_personnages, origine_inventaire |
+| `origine_chat` | Chatbox à la charte : heure des messages, historique aux flèches, onglets, complétion | origine_personnages |
 
 ## Installation
 
-1. Copier les **quatre dossiers** de `addons/` dans `garrysmod/addons/` du serveur
+1. Copier les **cinq dossiers** de `addons/` dans `garrysmod/addons/` du serveur
    (un dossier par système, ne pas les fusionner).
 2. Redémarrer le serveur. La console doit afficher :
    ```
@@ -21,7 +22,9 @@ Quatre addons Garry's Mod (DarkRP + ULX/ULib) réalisés d'après le cahier des 
    [Origine] origine_inventaire chargé.
    [Origine] origine_hud chargé.
    [Origine] origine_staff chargé.
+   [Origine] origine_chat chargé.
    ```
+   Si DarkRP n'est pas lancé, ou si son module faim est désactivé, la console le signale au démarrage.
    Si `origine_personnages` manque, les trois autres ne se lancent pas et le signalent en console.
 3. Remplir la liste des entités rangeables :
    `origine_inventaire/lua/origine_inventaire/sh_entites.lua`.
@@ -39,7 +42,10 @@ Tous les réglages sont dans les `sh_config.lua`, commentés en français :
 - `origine_hud/lua/origine_hud/sh_config.lua` : taille, jauges, distance des infos au-dessus de la tête.
 - `origine_inventaire/lua/origine_inventaire/sh_config.lua` : portée de la sacoche, capacité (20 / 30 VIP),
   taille des piles (3), durée du sac de mort (10 min).
-- `origine_staff/lua/origine_staff/sh_config.lua` : permission, limites d'affichage.
+- `origine_staff/lua/origine_staff/sh_config.lua` : permission, limites d'affichage, logs
+  (rétention 14 jours, regroupement des dégâts, catégories désactivables).
+- `origine_chat/lua/origine_chat/sh_config.lua` : taille, police, durée d'affichage, longueur maximum,
+  onglets, anti-spam, commandes proposées.
 
 ### Champs optionnels dans `job.lua`
 
@@ -66,9 +72,36 @@ Sans ces champs : `PVMaxDefaut` / `ArmureMaxDefaut` de la config (100), et les v
 | Sacoche clic gauche | | Tous | Range l'entité visée |
 | Sacoche clic droit | | Tous | Ouvre l'inventaire |
 | E sur un sac de mort | | Tous | Fouiller le sac |
+| Chat : ↑ / ↓ | | Tous | Revenir sur les messages déjà envoyés |
+| Chat : Tab | | Tous | Compléter une commande (`/`, `!`) ou un nom de joueur |
+| Chat : clic droit | | Tous | Copier, répondre en MP, ignorer un joueur, ouvrir un lien |
 
 La permission `origine_menu` est donnée aux superadmins par défaut et s'attribue à d'autres rangs
 dans XGUI (onglet Groupes, catégorie « Origine »). Elle est vérifiée côté serveur à chaque action.
+
+## Menu staff `!origine`
+
+- **Joueurs** : recherche (connectés et hors ligne), fiche du compte et des 5 personnages, actions
+  (race, rerolls, nom, forcer un slot, slot EVENT, **déblocage du slot 3**, inventaire, CK / RPK, annulation).
+  Le slot 3 est accessible aux groupes VIP **ou** aux joueurs débloqués par le staff.
+- **Logs** : un sous-onglet par catégorie, avec filtres par joueur, par texte et par période, et pagination.
+  Un clic sur une ligne affiche le détail et ouvre la fiche de l'auteur ou de la cible.
+
+| Sous-onglet | Contenu |
+|---|---|
+| Dégâts | Quand, attaquant, victime, arme, dégâts, type (balle, feu, chute…), PV restants ; coups en rafale regroupés |
+| Morts | Tueur, victime, arme, distance ; PNJ tués |
+| Personnages | Création, tirage, reroll, chargement d'un slot, retour au menu, nouveau nom |
+| Chat | Chaque message avec son canal (local, OOC, action, MP, commande…) |
+| Connexions | Connexion, arrivée en jeu, déconnexion avec raison et durée de session (pas d'IP) |
+| Props / entités | Props, entités, véhicules, PNJ, ragdolls, effets, armes, outils utilisés |
+| Économie | Covan jetés, ramassés, donnés, chèques, achats DarkRP, portes (salaires en option) |
+| Inventaire | Ranger, équiper, déposer, détruire, sacs de mort créés, fouillés, vidés |
+| Jobs | Changements de métier |
+| Police | Arrestations, libérations, avis de recherche, mandats |
+| Staff | Historique des actions staff (qui, quoi, quand, sur qui, avant / après, raison) |
+
+Les logs sont écrits par lots toutes les 5 secondes (table `origine_logs`) et supprimés après 14 jours.
 
 ## Pour les autres addons
 
@@ -85,6 +118,8 @@ hook.Add("origine_PersonnageDecharge", "mon_addon", function(ply, perso, options
 hook.Add("origine_SauvegardeGenerale", "mon_addon", function(synchrone) end)
 hook.Add("origine_NettoyageMonde", "mon_addon", function(ply) end)
 hook.Add("origine_ArmesExclues", "mon_addon", function(ply, set) end)
+hook.Add("origine_ChatMessage", "mon_addon", function(message) end)  -- client, chaque message du chat
+ORIGINE.Logs.Ajouter("categorie", acteur, cible, "texte", { details })  -- serveur, ajouter un log
 ```
 
 À prévoir sur ce serveur : les données wOS (compétences, niveaux ALCS) et l'inventaire wOS sont
@@ -102,9 +137,12 @@ Si la connexion MySQL échoue, le système repasse sur SQLite.
 | `origine_inventaires` | Inventaire de chaque personnage |
 | `origine_historique` | Actions staff, tirages de race et rerolls |
 | `origine_copies` | Copie complète d'un personnage avant chaque CK ou RPK |
+| `origine_logs` | Logs du serveur (dégâts, chat, connexions…) |
 
 Sauvegarde au changement de personnage, à la déconnexion, toutes les 5 minutes, à l'arrêt du serveur
-et à chaque modification d'inventaire (écritures regroupées). Copie complète des tables chaque jour
+et à chaque modification d'inventaire (écritures regroupées). Un personnage n'est réécrit que s'il a
+changé depuis la dernière écriture. Les colonnes ajoutées par les mises à jour sont créées automatiquement
+sur une base existante. Copie complète des tables chaque jour
 dans `garrysmod/data/origine/sauvegardes/`, gardée 7 jours.
 
 Mise en place : les Covan qu'un joueur avait déjà dans DarkRP sont transférés sur son slot 1.
@@ -116,8 +154,13 @@ Mise en place : les Covan qu'un joueur avait déjà dans DarkRP sont transféré
   (`DarkRP_LocalPlayerHUD`), la faim (`DarkRP_Hungermod`) et les infos au-dessus des joueurs
   (`DarkRP_EntityDisplay`) sont bien masqués et remplacés. Les infos des portes, qui étaient dans
   `DarkRP_EntityDisplay`, sont redessinées par `origine_hud`.
-- **HUD sous la chatbox.** S'il n'y a pas assez de place sous la chatbox, le HUD est réduit ; s'il
-  deviendrait trop petit, il se place à droite de la chatbox, en bas, pour ne jamais la chevaucher.
+- **HUD sous la chatbox.** Avec `origine_chat`, le chat se place en laissant la place au HUD dessous.
+  Sans lui, s'il n'y a pas assez de place sous la chatbox, le HUD est réduit ; s'il deviendrait trop petit,
+  il se place à droite de la chatbox, en bas, pour ne jamais la chevaucher. La jauge de faim est masquée
+  si le module faim de DarkRP est désactivé, et le métier n'est pas affiché tant que le joueur n'en a pas.
+- **Chat.** Les messages partent avec `say` / `say_team` : DarkRP, ULX et les autres addons les traitent
+  comme avant. L'onglet OOC ajoute `// ` devant les messages. Pendant le menu personnage, seul l'OOC
+  reste disponible (règle du cahier). Les joueurs ignorés et les préférences sont gardés sur le PC du joueur.
 - **`sh_entites.lua`** garde le format du cahier (`ORIGINE_INV.EntitesAutorisees`). Au chargement la liste
   est recopiée dans `ORIGINE.Inv` et `ORIGINE_INV` est supprimée : il ne reste qu'une table globale, `ORIGINE`.
 - **Création** : le tirage est enregistré en base avant l'animation. Un personnage tiré mais pas encore

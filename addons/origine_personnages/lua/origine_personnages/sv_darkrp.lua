@@ -169,3 +169,23 @@ hook.Add("PlayerSetModel", "origine_modele", function(ply)
 		if m and ORIGINE.ModeleDuJob(ply:Team(), m) then ply:SetModel(m) end
 	end)
 end)
+
+---------------------------------------------------------------------------
+-- Avertissements au démarrage : DarkRP absent ou module faim désactivé
+---------------------------------------------------------------------------
+hook.Add("InitPostEntity", "origine_verif_darkrp", function()
+	local rouge, blanc = Color(230, 60, 50), Color(255, 255, 255)
+	if not DarkRP or not RPExtraTeams then
+		MsgC(rouge, "[Origine] ", blanc, "DarkRP n'est pas chargé : les jobs, les Covan et la faim ne fonctionneront pas.\n")
+		MsgC(rouge, "[Origine] ", blanc, "Vérifiez que le serveur est lancé avec +gamemode darkrp.\n")
+		return
+	end
+	local modules = DarkRP.disabledDefaults and DarkRP.disabledDefaults["modules"]
+	if modules and modules["hungermod"] then
+		MsgC(rouge, "[Origine] ", blanc, "Le module faim de DarkRP est désactivé : la jauge de faim est masquée.\n")
+		MsgC(rouge, "[Origine] ", blanc, "Pour l'activer : darkrpmodification/lua/darkrp_config/disabled_defaults.lua -> [\"hungermod\"] = false\n")
+	end
+	if not ORIGINE.EquipeSelection then
+		MsgC(rouge, "[Origine] ", blanc, "Le job caché « " .. ORIGINE.Config.JobSelection.Nom .. " » n'a pas pu être créé.\n")
+	end
+end)

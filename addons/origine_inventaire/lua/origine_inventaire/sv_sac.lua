@@ -52,6 +52,7 @@ hook.Add("DoPlayerDeath", "origine_sac", function(ply)
 	end
 	if #contenu > 0 then
 		I.CreerSac(ply:GetPos(), contenu, ORIGINE.NomComplet(ply))
+		hook.Run("origine_InvAction", ply, "sac_cree", nil, { objets = I.Compter(contenu) })
 	end
 end)
 
@@ -81,6 +82,9 @@ end
 function I.OuvrirSac(ply, sac)
 	if not peutFouiller(ply, sac) then return end
 	sac.Spectateurs = sac.Spectateurs or {}
+	if not sac.Spectateurs[ply] then
+		hook.Run("origine_InvAction", ply, "sac_ouvert", nil, { sac = sac:GetNW2String("origine_sac_nom", "") })
+	end
 	sac.Spectateurs[ply] = true
 	envoyerSac(sac, ply)
 end
@@ -133,13 +137,16 @@ ORIGINE.NetRecevoir("origine_sac_action", function(ply)
 			I.AjouterDans(sac.Contenu, objet, math.huge)
 			return ORIGINE.Notifier(ply, "Impossible d'équiper cette arme.", "erreur")
 		end
+		hook.Run("origine_InvAction", ply, "sac_equiper", objet)
 	elseif action == "deposer" then
 		local objet = I.RetirerDe(sac.Contenu, index)
 		if not IsValid(I.FaireApparaitre(objet, positionAuSol(sac, index), nil, ply)) then
 			I.AjouterDans(sac.Contenu, objet, math.huge)
+			return
 		end
+		hook.Run("origine_InvAction", ply, "sac_deposer", objet)
 	elseif action == "detruire" then
-		I.RetirerDe(sac.Contenu, index)
+		hook.Run("origine_InvAction", ply, "sac_detruire", I.RetirerDe(sac.Contenu, index))
 	else
 		return
 	end
@@ -167,6 +174,7 @@ ORIGINE.NetRecevoir("origine_sac_tout", function(ply)
 		end
 	end
 	I.Modifie(ply)
+	hook.Run("origine_InvAction", ply, "sac_tout", nil, { objets = I.Compter(contenu), au_sol = auSol })
 	if auSol > 0 then
 		ORIGINE.Notifier(ply, auSol .. " objet(s) ne rentrai(en)t pas : posé(s) au sol.", "info")
 	end

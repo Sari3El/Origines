@@ -94,6 +94,17 @@ function ORIGINE.Normaliser(s)
 	return table.concat(out)
 end
 
+-- Coupe un texte à n caractères sans casser un caractère accentué
+function ORIGINE.Tronquer(s, n)
+	s = tostring(s or "")
+	local codes = ORIGINE.Utf8Codes(s)
+	if not codes then return string.sub(s, 1, n) end
+	if #codes <= n then return s end
+	local out = {}
+	for i = 1, n do out[i] = ORIGINE.Utf8Char(codes[i]) end
+	return table.concat(out)
+end
+
 ---------------------------------------------------------------------------
 -- Validation des noms
 ---------------------------------------------------------------------------
@@ -292,7 +303,9 @@ end
 function ORIGINE.SlotAccessible(ply, slot, compte)
 	if slot == 1 or slot == 2 then return true end
 	if slot == ORIGINE.SLOT_VIP then
+		-- VIP, ou débloqué pour ce joueur par le staff (!origine)
 		if ORIGINE.EstVIP(ply) then return true end
+		if compte and tonumber(compte.vip_debloque) == 1 then return true end
 		return false, C.Slots[slot].Verrou
 	end
 	if slot == ORIGINE.SLOT_EVENT then
@@ -321,6 +334,22 @@ function ORIGINE.CategorieArme(classe)
 		if dansListe(liste, classe) then return cat end
 	end
 	return nil
+end
+
+---------------------------------------------------------------------------
+-- Réseau : tables compressées (fiches staff, logs…)
+---------------------------------------------------------------------------
+function ORIGINE.NetEcrireTable(t)
+	local donnees = util.Compress(util.TableToJSON(t or {}) or "[]") or ""
+	net.WriteUInt(#donnees, 32)
+	if #donnees > 0 then net.WriteData(donnees, #donnees) end
+end
+
+function ORIGINE.NetLireTable()
+	local n = net.ReadUInt(32)
+	if n == 0 then return {} end
+	local brut = util.Decompress(net.ReadData(n))
+	return brut and util.JSONToTable(brut) or {}
 end
 
 ---------------------------------------------------------------------------

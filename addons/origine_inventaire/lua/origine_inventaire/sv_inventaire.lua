@@ -206,6 +206,7 @@ function I.Ranger(ply, ent)
 	I.AjouterDans(cases, objet, I.Capacite(ply))
 	ply:EmitSound("items/ammocrate_open.wav", 60, 120)
 	I.Modifie(ply)
+	hook.Run("origine_InvAction", ply, "ranger", objet)
 end
 
 ---------------------------------------------------------------------------
@@ -227,6 +228,7 @@ function I.Action(ply, action, index)
 			return ORIGINE.Notifier(ply, "Impossible d'équiper cette arme.", "erreur")
 		end
 		ply:SelectWeapon(objet.arme)
+		hook.Run("origine_InvAction", ply, "equiper", objet)
 	elseif action == "deposer" then
 		local objet = I.RetirerDe(cases, index)
 		local pos, ang = I.PositionDevant(ply)
@@ -234,8 +236,9 @@ function I.Action(ply, action, index)
 			I.AjouterDans(cases, objet, math.huge)
 			return ORIGINE.Notifier(ply, "Impossible de déposer cet objet.", "erreur")
 		end
+		hook.Run("origine_InvAction", ply, "deposer", objet)
 	elseif action == "detruire" then
-		I.RetirerDe(cases, index)
+		hook.Run("origine_InvAction", ply, "detruire", I.RetirerDe(cases, index))
 	else
 		return
 	end

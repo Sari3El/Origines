@@ -75,6 +75,7 @@ function ORIGINE.LigneVersCompte(l)
 		reroll_gratuit = num(l.reroll_gratuit, 0),
 		event_debloque = num(l.event_debloque, 0),
 		event_race = (l.event_race and l.event_race ~= "NULL") and l.event_race or nil,
+		vip_debloque = num(l.vip_debloque, 0),
 		migration_covan = num(l.migration_covan, nil),
 		migration_faite = num(l.migration_faite, 0),
 		premiere_connexion = num(l.premiere_connexion, os.time()),
@@ -118,10 +119,10 @@ local function b(v) return v and 1 or 0 end
 function ORIGINE.EcrireCompte(c, synchrone)
 	DB.Requete([[REPLACE INTO origine_comptes
 		(steamid64, nom_steam, rerolls, dernier_slot, reroll_gratuit, event_debloque, event_race,
-		 migration_covan, migration_faite, premiere_connexion)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)]], {
+		 vip_debloque, migration_covan, migration_faite, premiere_connexion)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)]], {
 		c.steamid64, c.nom_steam, c.rerolls, c.dernier_slot, c.reroll_gratuit, c.event_debloque,
-		c.event_race, c.migration_covan, c.migration_faite, c.premiere_connexion,
+		c.event_race, c.vip_debloque or 0, c.migration_covan, c.migration_faite, c.premiere_connexion,
 	}, nil, synchrone)
 end
 
@@ -145,8 +146,30 @@ function ORIGINE.RequetePerso(p)
 		" VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", paramsPerso(p)
 end
 
-function ORIGINE.EcrirePerso(p, synchrone, callback)
+-- Dernière version écrite de chaque personnage : on n'écrit que ce qui a changé
+local derniereEcriture = setmetatable({}, { __mode = "k" })
+
+local function empreinte(params)
+	local t = {}
+	for i = 1, 27 do t[i] = tostring(params[i]) end
+	return table.concat(t, "\31")
+end
+
+-- Retourne la requête seulement si le personnage a changé depuis la dernière écriture
+function ORIGINE.RequetePersoSiModifie(p)
 	local requete, params = ORIGINE.RequetePerso(p)
+	local e = empreinte(params)
+	if derniereEcriture[p] == e then return nil end
+	derniereEcriture[p] = e
+	return requete, params
+end
+
+function ORIGINE.EcrirePerso(p, synchrone, callback)
+	local requete, params = ORIGINE.RequetePersoSiModifie(p)
+	if not requete then
+		if callback then callback({}) end
+		return
+	end
 	DB.Requete(requete, params, callback, synchrone)
 end
 
@@ -345,14 +368,16 @@ function ORIGINE.CapturerEtat(ply)
 	end
 
 	p.modele = ply:GetModel()
-	p.derniere_connexion = os.time()
 	p.nouveau = false
 	return p
 end
 
 function ORIGINE.SauvegarderJoueur(ply, synchrone)
 	local p = ORIGINE.CapturerEtat(ply)
-	if p then ORIGINE.EcrirePerso(p, synchrone) end
+	if p then
+		p.derniere_connexion = os.time()
+		ORIGINE.EcrirePerso(p, synchrone)
+	end
 	hook.Run("origine_SauvegardeJoueur", ply, p, synchrone)
 end
 
@@ -530,6 +555,7 @@ function ORIGINE.QuitterPerso(ply, options)
 	if p then
 		if not options.sansSauvegarde then
 			ORIGINE.CapturerEtat(ply)
+			p.derniere_connexion = os.time()
 			ORIGINE.EcrirePerso(p)
 		end
 		hook.Run("origine_PersonnageDecharge", ply, p, options)

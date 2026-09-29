@@ -483,10 +483,18 @@ if not M.ChatEnveloppe then
 	M.ChatEnveloppe = true
 	local ancien = chat.AddText
 	chat.AddText = function(...)
-		pcall(capturerChat, ...)
+		-- Avec origine_chat, les messages arrivent par le hook origine_ChatMessage
+		if not ORIGINE.Chat then pcall(capturerChat, ...) end
 		return ancien(...)
 	end
 end
+
+hook.Add("origine_ChatMessage", "origine_menu", function(message)
+	local morceaux = {}
+	for _, m in ipairs(message.morceaux) do morceaux[#morceaux + 1] = { m[1], m[2] } end
+	table.insert(M.Chat, morceaux)
+	while #M.Chat > 9 do table.remove(M.Chat, 1) end
+end)
 
 local function creerChat(parent)
 	local p = vgui.Create("DPanel", parent)

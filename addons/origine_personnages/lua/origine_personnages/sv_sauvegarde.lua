@@ -18,8 +18,10 @@ function ORIGINE.SauvegarderTout(synchrone)
 	for _, ply in ipairs(player.GetAll()) do
 		local p = ORIGINE.CapturerEtat(ply)
 		if p then
-			local r, params = ORIGINE.RequetePerso(p)
-			requetes[#requetes + 1] = { r, params }
+			if synchrone then p.derniere_connexion = os.time() end
+			-- Seulement les personnages qui ont changé depuis la dernière écriture
+			local r, params = ORIGINE.RequetePersoSiModifie(p)
+			if r then requetes[#requetes + 1] = { r, params } end
 		end
 	end
 	DB.Lot(requetes, synchrone)

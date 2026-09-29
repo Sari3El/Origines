@@ -115,8 +115,8 @@ function S.Ouvrir()
 
 	local bJoueurs = UI.Bouton(onglets, "Joueurs", function() S.OngletJoueurs() end)
 	bJoueurs:Dock(LEFT) bJoueurs:SetWide(UI.S(200)) bJoueurs:DockMargin(0, 0, UI.S(8), 0)
-	local bHist = UI.Bouton(onglets, "Historique", function() S.OngletHistorique() end)
-	bHist:Dock(LEFT) bHist:SetWide(UI.S(200))
+	local bLogs = UI.Bouton(onglets, "Logs", function() S.OngletLogs() end)
+	bLogs:Dock(LEFT) bLogs:SetWide(UI.S(200))
 
 	S.OngletJoueurs()
 end
@@ -365,6 +365,17 @@ function S.AfficherFiche(fiche)
 				choisirRace("Race du slot EVENT", function(id) action("event", sid, 0, "1", id) end)
 			end)
 		end
+		local r2 = rangeeBoutons(pan)
+		local vip = c.vip_debloque == 1
+		r2:Ajouter(vip and "Verrouiller le slot 3" or "Débloquer le slot 3", function()
+			if vip then
+				UI.Confirmer("Slot 3", "Verrouiller le slot 3 de ce joueur ? S'il n'est pas VIP et joue dessus, il revient au menu (ses données sont gardées).", function()
+					action("vip_slot", sid, 0, "0")
+				end, "Verrouiller")
+			else
+				action("vip_slot", sid, 0, "1")
+			end
+		end, 220)
 	end
 
 	for s = 1, ORIGINE.NB_SLOTS do carteSlot(pan, fiche, s) end
@@ -423,10 +434,8 @@ local function detailHistorique(e)
 	)
 end
 
-function S.OngletHistorique()
-	local corps = S.Corps
-	corps:Clear()
-	S.Onglet = "historique"
+-- Historique des actions staff (sous-onglet « Staff » des logs)
+function S.OngletHistorique(corps)
 
 	local filtres = vgui.Create("DPanel", corps)
 	filtres:Dock(TOP)
@@ -493,12 +502,203 @@ function S.AfficherHistorique(entrees)
 end
 
 ---------------------------------------------------------------------------
+-- Onglet Logs : un sous-onglet par catégorie
+---------------------------------------------------------------------------
+local PERIODES = {
+	{ "Dernière heure", 3600 }, { "24 heures", 86400 }, { "7 jours", 7 * 86400 },
+	{ "30 jours", 30 * 86400 }, { "Tout", 0 },
+}
+
+local function dateLog(t) return t and os.date("%d/%m %H:%M:%S", t) or "—" end
+
+function S.OuvrirFicheJoueur(sid)
+	if not sid then return end
+	S.OngletJoueurs()
+	net.Start("origine_staff_fiche")
+		net.WriteString(sid)
+	net.SendToServer()
+end
+
+local function detailLog(categorie, e)
+	local f = UI.Fenetre(dateLog(e.date) .. " — " .. categorie, UI.S(640), UI.S(440))
+	local bas = vgui.Create("DPanel", f)
+	bas:Dock(BOTTOM) bas:SetTall(UI.S(38)) bas:DockMargin(0, UI.S(8), 0, 0) bas.Paint = nil
+	if e.acteur_sid then
+		local b = UI.Bouton(bas, "Fiche de l'auteur", function() f:Close() S.OuvrirFicheJoueur(e.acteur_sid) end)
+		b:Dock(LEFT) b:SetWide(UI.S(220)) b:DockMargin(0, 0, UI.S(8), 0)
+	end
+	if e.cible_sid then
+		local b = UI.Bouton(bas, "Fiche de la cible", function() f:Close() S.OuvrirFicheJoueur(e.cible_sid) end)
+		b:Dock(LEFT) b:SetWide(UI.S(220))
+	end
+	local texte = vgui.Create("DTextEntry", f)
+	texte:Dock(FILL)
+	texte:SetMultiline(true)
+	texte:SetEditable(false)
+	texte:SetFont(UI.Police("petit"))
+	local l = {
+		"Quand : " .. os.date("%d/%m/%Y %H:%M:%S", e.date),
+		"Auteur : " .. (e.acteur_nom or "—") .. (e.acteur_sid and (" (" .. e.acteur_sid .. ")") or ""),
+		"Cible : " .. (e.cible_nom or "—") .. (e.cible_sid and (" (" .. e.cible_sid .. ")") or ""),
+		"",
+		e.texte or "",
+	}
+	local d = e.details and util.JSONToTable(e.details)
+	if d then
+		l[#l + 1] = ""
+		l[#l + 1] = "Détails :"
+		for k, v in SortedPairs(d) do l[#l + 1] = "  " .. tostring(k) .. " : " .. (istable(v) and util.TableToJSON(v) or tostring(v)) end
+	end
+	texte:SetText(table.concat(l, "\n"))
+end
+
+function S.OngletLogs()
+	local corps = S.Corps
+	corps:Clear()
+	S.Onglet = "logs"
+	S.LogsCategorie = S.LogsCategorie or CS.CategoriesLogs[1].id
+
+	local menu = vgui.Create("DPanel", corps)
+	menu:Dock(LEFT)
+	menu:SetWide(UI.S(190))
+	menu:DockMargin(0, 0, UI.S(12), 0)
+	menu.Paint = function(_, pw, ph) UI.Rect(0, 0, pw, ph, Color(0, 0, 0, 60)) end
+	menu:DockPadding(UI.S(6), UI.S(6), UI.S(6), UI.S(6))
+
+	local contenu = vgui.Create("DPanel", corps)
+	contenu:Dock(FILL)
+	contenu.Paint = nil
+	S.LogsContenu = contenu
+
+	for _, cat in ipairs(CS.CategoriesLogs) do
+		local b = vgui.Create("DButton", menu)
+		b:Dock(TOP)
+		b:SetTall(UI.S(34))
+		b:DockMargin(0, 0, 0, UI.S(4))
+		b:SetText("")
+		b.Paint = function(s, bw, bh)
+			local actif = S.LogsCategorie == cat.id
+			UI.Rect(0, 0, bw, bh, actif and COL.FondClair or (s:IsHovered() and COL.Survol or COL.Fond))
+			UI.Contour(0, 0, bw, bh, actif and COL.Or or COL.Bordure, 1)
+			UI.Texte(cat.Nom, "texte", UI.S(10), bh / 2, actif and COL.Or or COL.Texte, TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER)
+		end
+		b.DoClick = function()
+			S.LogsCategorie = cat.id
+			S.ConstruireLogs()
+		end
+	end
+	S.ConstruireLogs()
+end
+
+function S.ConstruireLogs()
+	local contenu = S.LogsContenu
+	if not IsValid(contenu) then return end
+	contenu:Clear()
+	local categorie = S.LogsCategorie
+	if categorie == "staff" then
+		S.OngletHistorique(contenu)
+		return
+	end
+
+	local filtres = vgui.Create("DPanel", contenu)
+	filtres:Dock(TOP)
+	filtres:SetTall(UI.S(36))
+	filtres:DockMargin(0, 0, 0, UI.S(8))
+	filtres.Paint = nil
+	local joueur = UI.Entree(filtres, "Joueur (nom ou SteamID)")
+	joueur:Dock(LEFT) joueur:SetWide(UI.S(250)) joueur:DockMargin(0, 0, UI.S(8), 0)
+	local recherche = UI.Entree(filtres, "Rechercher dans le texte")
+	recherche:Dock(LEFT) recherche:SetWide(UI.S(250)) recherche:DockMargin(0, 0, UI.S(8), 0)
+	local periode = UI.Combo(filtres)
+	periode:Dock(LEFT) periode:SetWide(UI.S(170)) periode:DockMargin(0, 0, UI.S(8), 0)
+	for i, p in ipairs(PERIODES) do periode:AddChoice(p[1], p[2], i == 2) end
+
+	S.LogsPage = 1
+	local function demander(page)
+		local _, secondes = periode:GetSelected()
+		S.LogsPage = page
+		net.Start("origine_staff_logs")
+			net.WriteString(categorie)
+			net.WriteString(joueur:GetText())
+			net.WriteString(recherche:GetText())
+			net.WriteUInt(secondes or 0, 32)
+			net.WriteUInt(page, 16)
+		net.SendToServer()
+	end
+	S.DemanderLogs = demander
+	local b = UI.Bouton(filtres, "Actualiser", function() demander(1) end)
+	b:Dock(LEFT) b:SetWide(UI.S(140))
+	joueur.OnEnter = function() demander(1) end
+	recherche.OnEnter = function() demander(1) end
+	periode.OnSelect = function() demander(1) end
+
+	local bas = vgui.Create("DPanel", contenu)
+	bas:Dock(BOTTOM)
+	bas:SetTall(UI.S(36))
+	bas:DockMargin(0, UI.S(8), 0, 0)
+	bas.Paint = function(_, bw, bh)
+		UI.Texte("Page " .. (S.LogsPage or 1), "texte_gras", bw / 2, bh / 2, COL.Or, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
+	end
+	S.BoutonPrecedent = UI.Bouton(bas, "Précédent", function() if S.LogsPage > 1 then demander(S.LogsPage - 1) end end)
+	S.BoutonPrecedent:Dock(LEFT) S.BoutonPrecedent:SetWide(UI.S(160))
+	S.BoutonSuivant = UI.Bouton(bas, "Suivant", function() demander(S.LogsPage + 1) end)
+	S.BoutonSuivant:Dock(RIGHT) S.BoutonSuivant:SetWide(UI.S(160))
+
+	S.ListeLogs = UI.StyliserScroll(vgui.Create("DScrollPanel", contenu))
+	S.ListeLogs:Dock(FILL)
+	demander(1)
+end
+
+function S.AfficherLogs(categorie, page, suite, lignes)
+	local liste = S.ListeLogs
+	if not IsValid(liste) or categorie ~= S.LogsCategorie then return end
+	liste:Clear()
+	S.LogsPage = page
+	if IsValid(S.BoutonPrecedent) then S.BoutonPrecedent:SetEnabled(page > 1) end
+	if IsValid(S.BoutonSuivant) then S.BoutonSuivant:SetEnabled(suite) end
+	if #lignes == 0 then
+		local l = liste:Add("DLabel")
+		l:Dock(TOP) l:SetTall(UI.S(26)) l:SetFont(UI.Police("petit")) l:SetTextColor(COL.TexteSombre)
+		l:SetText("Aucun log pour ces filtres.")
+		return
+	end
+	local nomCat = categorie
+	for _, c in ipairs(CS.CategoriesLogs) do if c.id == categorie then nomCat = c.Nom end end
+	for _, e in ipairs(lignes) do
+		local ligne = liste:Add("DButton")
+		ligne:Dock(TOP)
+		ligne:SetTall(UI.S(28))
+		ligne:DockMargin(0, 0, 0, UI.S(2))
+		ligne:SetText("")
+		ligne:SetTooltip(e.texte)
+		ligne.Paint = function(s, lw, lh)
+			UI.Rect(0, 0, lw, lh, s:IsHovered() and COL.Survol or COL.FondClair)
+			UI.Texte(dateLog(e.date), "petit", UI.S(8), lh / 2, COL.TexteSombre, TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER)
+			UI.Texte(e.acteur_nom or "—", "petit_gras", UI.S(140), lh / 2, COL.Or, TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER)
+			local x = UI.S(390)
+			UI.Texte(e.texte or "", "petit", x, lh / 2, COL.Texte, TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER)
+			if e.cible_nom then
+				UI.Texte("-> " .. e.cible_nom, "petit_gras", lw - UI.S(8), lh / 2, COL.Texte, TEXT_ALIGN_RIGHT, TEXT_ALIGN_CENTER)
+			end
+		end
+		ligne.DoClick = function() detailLog(nomCat, e) end
+	end
+end
+
+---------------------------------------------------------------------------
 -- Réseau
 ---------------------------------------------------------------------------
 net.Receive("origine_staff_ouvrir", function() S.Ouvrir() end)
-net.Receive("origine_staff_resultats", function() S.AfficherResultats(net.ReadTable()) end)
+net.Receive("origine_staff_resultats", function() S.AfficherResultats(ORIGINE.NetLireTable()) end)
 net.Receive("origine_staff_fiche", function()
-	local fiche = net.ReadTable()
+	local fiche = ORIGINE.NetLireTable()
 	if IsValid(S.Fenetre) and S.Onglet == "joueurs" then S.AfficherFiche(fiche) else S.DerniereFiche = fiche end
 end)
-net.Receive("origine_staff_historique", function() S.AfficherHistorique(net.ReadTable()) end)
+net.Receive("origine_staff_historique", function() S.AfficherHistorique(ORIGINE.NetLireTable()) end)
+net.Receive("origine_staff_logs", function()
+	local categorie = net.ReadString()
+	local page = net.ReadUInt(16)
+	local suite = net.ReadBool()
+	local lignes = ORIGINE.NetLireTable()
+	S.AfficherLogs(categorie, page, suite, lignes)
+end)
