@@ -99,12 +99,22 @@ C.PVMaxDefaut = 100
 C.ArmureMaxDefaut = 100
 
 ---------------------------------------------------------------------------
+-- Menu F4 de DarkRP
+---------------------------------------------------------------------------
+-- true : le menu F4 ne s'ouvre plus. Pour le couper aussi côté DarkRP :
+-- darkrpmodification/lua/darkrp_config/disabled_defaults.lua -> ["f4menu"] = true
+C.DesactiverF4 = true
+
+-- SWEP sélectionné à chaque apparition (mains vides, bras le long du corps). "" = aucun
+C.ArmeAuSpawn = "origine_mains"
+
+---------------------------------------------------------------------------
 -- Armes jamais sauvegardées ni déposées dans le sac de mort
 -- (en plus des armes du job, des armes par défaut de DarkRP et des SWEPs de race)
 ---------------------------------------------------------------------------
 C.ArmesExclues = {
 	"keys", "pocket", "weapon_keypadchecker", "weapon_physgun", "weapon_physcannon",
-	"gmod_tool", "gmod_camera", "weapon_fists", "origine_sacoche",
+	"gmod_tool", "gmod_camera", "weapon_fists", "origine_sacoche", "origine_mains",
 }
 
 ---------------------------------------------------------------------------

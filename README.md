@@ -9,7 +9,7 @@ Cinq addons Garry's Mod (DarkRP + ULX/ULib) réalisés d'après le cahier des ch
 | `origine_hud` | HUD sous la chatbox, compteur de munitions, infos au-dessus de la tête | origine_personnages |
 | `origine_inventaire` | SWEP Sacoche, inventaire par personnage, sac de mort, liste des entités autorisées | origine_personnages |
 | `origine_staff` | Menu `!origine`, actions staff, historique, copies avant CK et RPK, logs du serveur | origine_personnages, origine_inventaire |
-| `origine_chat` | Chatbox à la charte : heure des messages, historique aux flèches, onglets, complétion | origine_personnages |
+| `origine_chat` | Chatbox à la charte : un seul chat général, heure des messages, historique aux flèches, complétion | origine_personnages |
 
 ## Installation
 
@@ -45,7 +45,7 @@ Tous les réglages sont dans les `sh_config.lua`, commentés en français :
 - `origine_staff/lua/origine_staff/sh_config.lua` : permission, limites d'affichage, logs
   (rétention 14 jours, regroupement des dégâts, catégories désactivables).
 - `origine_chat/lua/origine_chat/sh_config.lua` : taille, police, durée d'affichage, longueur maximum,
-  onglets, anti-spam, commandes proposées.
+  anti-spam, commandes proposées.
 
 ### Champs optionnels dans `job.lua`
 
@@ -78,6 +78,19 @@ Sans ces champs : `PVMaxDefaut` / `ArmureMaxDefaut` de la config (100), et les v
 
 La permission `origine_menu` est donnée aux superadmins par défaut et s'attribue à d'autres rangs
 dans XGUI (onglet Groupes, catégorie « Origine »). Elle est vérifiée côté serveur à chaque action.
+
+## Jobs DarkRP
+
+`darkrpmodification/lua/darkrp_customthings/jobs.lua` : 52 jobs générés depuis les tables de hiérarchie
+(Empire, Créatures de la nuit, Consortium) en 7 catégories, plus « Villageois », le job par défaut.
+Chaque job n'a que les armes de base (clés, physics gun, toolgun, gravity gun) et le SWEP `origine_mains`
+(mains vides, bras le long du corps). Uniques (max 1) : Capitaine de la Milice, L'Originel, Banquier.
+La Milice sert de force de l'ordre (`CivilProtection`), et chaque faction a son chat de groupe (`/g`).
+
+Dans `darkrpmodification/lua/darkrp_config/disabled_defaults.lua` :
+- `["f4menu"] = true` pour couper le menu F4 (l'addon le bloque aussi : `C.DesactiverF4`) ;
+- les jobs de base de DarkRP (`citizen`, `cp`, `mayor`, `gangster`, `mobboss`, `gundealer`, `medic`,
+  `chief`, `hobo`) à `true`, pour ne garder que ceux de ce fichier.
 
 ## Menu staff `!origine`
 
@@ -158,9 +171,9 @@ Mise en place : les Covan qu'un joueur avait déjà dans DarkRP sont transféré
   Sans lui, s'il n'y a pas assez de place sous la chatbox, le HUD est réduit ; s'il deviendrait trop petit,
   il se place à droite de la chatbox, en bas, pour ne jamais la chevaucher. La jauge de faim est masquée
   si le module faim de DarkRP est désactivé, et le métier n'est pas affiché tant que le joueur n'en a pas.
-- **Chat.** Les messages partent avec `say` / `say_team` : DarkRP, ULX et les autres addons les traitent
-  comme avant. L'onglet OOC ajoute `// ` devant les messages. Pendant le menu personnage, seul l'OOC
-  reste disponible (règle du cahier). Les joueurs ignorés et les préférences sont gardés sur le PC du joueur.
+- **Chat.** Un seul chat général. Les messages partent avec `say` / `say_team` : DarkRP, ULX et les autres
+  addons les traitent comme avant. Pour écrire hors RP : `/ooc message` ou `// message`. Pendant le menu
+  personnage, seul l'OOC reste disponible (règle du cahier). Les joueurs ignorés et les préférences sont gardés sur le PC du joueur.
 - **`sh_entites.lua`** garde le format du cahier (`ORIGINE_INV.EntitesAutorisees`). Au chargement la liste
   est recopiée dans `ORIGINE.Inv` et `ORIGINE_INV` est supprimée : il ne reste qu'une table globale, `ORIGINE`.
 - **Création** : le tirage est enregistré en base avant l'animation. Un personnage tiré mais pas encore
@@ -197,6 +210,7 @@ python3 tests/verifier_syntaxe.py     # syntaxe Lua de tous les fichiers (LuaJIT
 python3 tests/verifier_references.py  # chaque fonction ORIGINE.* appelée existe
 python3 tests/verifier_globales.py    # aucune variable globale inconnue (fautes de frappe)
 python3 tests/tests_logique.py        # noms, Covan, taux, tirage, piles d'inventaire
+python3 tests/tester_jobs.py          # jobs.lua : commandes uniques, catégories, armes
 ```
 
 En jeu, les tests de validation du cahier des charges :

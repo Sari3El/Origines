@@ -5,7 +5,7 @@
 	envoyés avec « say » : les commandes DarkRP et ULX fonctionnent comme avant.
 	  - heure de chaque message [HH:MM:SS]
 	  - flèches haut / bas : messages déjà envoyés
-	  - onglets Tout / RP / OOC / Système avec messages non lus
+	  - un seul chat général (hors RP : /ooc ou // message)
 	  - Tab : complète une commande ou un nom de joueur
 	  - suggestions de commandes en tapant « / » ou « ! »
 	  - nom de votre personnage surligné (et son) quand on vous cite
@@ -20,8 +20,6 @@ ORIGINE.Chat = ORIGINE.Chat or {}
 local CT = ORIGINE.Chat
 CT.Messages = CT.Messages or {}
 CT.Historique = CT.Historique or {}
-CT.Onglet = CT.Onglet or "tout"
-CT.NonLus = CT.NonLus or {}
 CT.Defilement = 0
 CT.IndexHist = 0
 
@@ -84,9 +82,7 @@ function CT.Ajouter(morceaux, canal, auteur, contenu)
 	table.insert(CT.Messages, msg)
 	while #CT.Messages > CC.MessagesEnMemoire do table.remove(CT.Messages, 1) end
 
-	if CT.Onglet ~= "tout" and CT.Onglet ~= canal then
-		CT.NonLus[canal] = (CT.NonLus[canal] or 0) + 1
-	elseif CT.Defilement > 0 and CT.LargeurTotale then
+	if CT.Defilement > 0 and CT.LargeurTotale then
 		-- La vue reste où elle est quand on lit plus haut
 		local _, _, zw = CT.Zone()
 		CT.Defilement = CT.Defilement + #CT.Decouper(msg, zw)
@@ -247,14 +243,10 @@ end
 
 CT.Decouper = decouper
 
-local function filtre(msg)
-	return CT.Onglet == "tout" or msg.canal == CT.Onglet
-end
-
 local function totalLignes(largeur)
 	local n = 0
 	for _, msg in ipairs(CT.Messages) do
-		if filtre(msg) then n = n + #decouper(msg, largeur) end
+		n = n + #decouper(msg, largeur)
 	end
 	return n
 end
@@ -268,16 +260,14 @@ local function remplirVisibles(largeur, nbMax, ferme)
 	for i = #CT.Messages, 1, -1 do
 		local msg = CT.Messages[i]
 		if ferme and maintenant - msg.cree >= CC.DureeAffichage then break end
-		if filtre(msg) then
-			local lignes = decouper(msg, largeur)
-			for j = #lignes, 1, -1 do
-				if saut > 0 then
-					saut = saut - 1
-				else
-					nVis = nVis + 1
-					visL[nVis], visM[nVis] = lignes[j], msg
-					if nVis >= nbMax then return end
-				end
+		local lignes = decouper(msg, largeur)
+		for j = #lignes, 1, -1 do
+			if saut > 0 then
+				saut = saut - 1
+			else
+				nVis = nVis + 1
+				visL[nVis], visM[nVis] = lignes[j], msg
+				if nVis >= nbMax then return end
 			end
 		end
 	end
@@ -357,11 +347,12 @@ end
 local couleurMention = Color(255, 255, 255, 40)
 local couleurOmbre = Color(0, 0, 0, 200)
 local couleurZone = Color(12, 9, 7, 170)
+local couleurSaisie = Color(16, 12, 9, 235)
 
 local function tailles()
 	local S = UI.S
 	local w = S(CC.Largeur)
-	local hOnglets, hEntree = S(28), S(34)
+	local hOnglets, hEntree = S(22), S(34)
 	local hMessages = S(CC.Hauteur)
 	local h = hOnglets + hMessages + hEntree + S(16)
 	local hud = (ORIGINE.HUD and ORIGINE.HUD.Hauteur and ORIGINE.HUD.Hauteur() or 0)
@@ -377,26 +368,13 @@ function CT.Construire()
 	CT.Panneau = pan
 
 	local barre = vgui.Create("DPanel", pan)
-	barre.Paint = nil
 	CT.Barre = barre
-	CT.BoutonsOnglets = {}
-	for _, o in ipairs(CC.Onglets) do
-		local b = vgui.Create("DButton", barre)
-		b:SetText("")
-		b.DoClick = function()
-			CT.Onglet = o.id
-			CT.NonLus[o.id] = 0
-			CT.Defilement, CT.NouveauxEnBas = 0, false
-		end
-		b.Paint = function(s, bw, bh)
-			local actif = CT.Onglet == o.id
-			UI.Rect(0, 0, bw, bh, actif and COL.FondClair or COL.Fond)
-			UI.Contour(0, 0, bw, bh, actif and COL.Or or COL.Bordure, 1)
-			local n = CT.NonLus[o.id] or 0
-			local texte = o.Nom .. (n > 0 and (" (" .. n .. ")") or "")
-			UI.Texte(texte, "chat_petit", bw / 2, bh / 2, (actif or s:IsHovered()) and COL.Texte or COL.TexteSombre, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
-		end
-		CT.BoutonsOnglets[#CT.BoutonsOnglets + 1] = b
+	barre.Paint = function(_, bw, bh)
+		UI.Texte("Chat", "chat_petit", UI.S(4), bh / 2, COL.Or, TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER)
+		-- Compteur de caractères (hors du champ de saisie, pour ne rien chevaucher)
+		local n = IsValid(CT.Entree) and #CT.Entree:GetText() or 0
+		UI.Texte(n .. " / " .. CC.LongueurMax, "chat_petit", bw - bh - UI.S(8), bh / 2,
+			n >= CC.LongueurMax and COL.Alerte or COL.TexteSombre, TEXT_ALIGN_RIGHT, TEXT_ALIGN_CENTER)
 	end
 	local reglages = vgui.Create("DButton", barre)
 	reglages:SetText("")
@@ -414,12 +392,12 @@ function CT.Construire()
 	entree:SetPaintBackground(false)
 	entree:SetHistoryEnabled(false)
 	entree.Paint = function(s, ew, eh)
-		UI.Rect(0, 0, ew, eh, Color(16, 12, 9, 235))
+		UI.Rect(0, 0, ew, eh, couleurSaisie)
 		UI.Contour(0, 0, ew, eh, COL.Or, 1)
-		local libelle = CT.Equipe and "Équipe" or (CT.Onglet == "ooc" and "OOC" or "Dire")
-		UI.Texte(libelle, "chat_petit", UI.S(8), eh / 2, COL.Or, TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER)
-		local n = #s:GetText()
-		UI.Texte(n .. "/" .. CC.LongueurMax, "chat_petit", ew - UI.S(8), eh / 2, n >= CC.LongueurMax and COL.Alerte or COL.TexteSombre, TEXT_ALIGN_RIGHT, TEXT_ALIGN_CENTER)
+		if s:GetText() == "" then
+			local aide = CT.Equipe and "Message d'équipe…" or "Écrire un message…  (hors RP : /ooc ou //)"
+			UI.Texte(aide, "chat_petit", UI.S(6), eh / 2, COL.TexteSombre, TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER)
+		end
 		s:DrawTextEntryText(COL.Texte, COL.Or, COL.Texte)
 	end
 	entree.OnChange = function(s)
@@ -507,16 +485,10 @@ function CT.Disposer()
 	CT.LargeurTotale, CT.HauteurOnglets, CT.HauteurZone = w, hOnglets, hMessages
 	CT.Barre:SetPos(UI.S(6), UI.S(4))
 	CT.Barre:SetSize(w - UI.S(12), hOnglets - UI.S(2))
-	local largeurOnglet = UI.S(84)
-	for i, b in ipairs(CT.BoutonsOnglets) do
-		b:SetPos((i - 1) * (largeurOnglet + UI.S(4)), 0)
-		b:SetSize(largeurOnglet, hOnglets - UI.S(4))
-	end
 	CT.Reglages:SetSize(hOnglets, hOnglets - UI.S(4))
 	CT.Reglages:SetPos(w - UI.S(12) - hOnglets, 0)
 	CT.Entree:SetPos(UI.S(6), h - hEntree - UI.S(6))
 	CT.Entree:SetSize(w - UI.S(12), hEntree)
-	CT.Entree:SetTextInset(UI.S(56), 0)
 end
 
 -- Correspondance clic -> message (positions enregistrées au dessin)
@@ -607,7 +579,6 @@ function CT.Ouvrir(equipe)
 	local pan = CT.Panneau
 	CT.Ouvert, CT.Equipe = true, equipe and true or false
 	CT.IndexHist, CT.Defilement, CT.NouveauxEnBas = 0, 0, false
-	CT.NonLus[CT.Onglet] = 0
 	pan:MakePopup()
 	pan:SetMouseInputEnabled(true)
 	pan:SetKeyboardInputEnabled(true)
@@ -653,9 +624,6 @@ function CT.Envoyer()
 		if CT.Historique[#CT.Historique] ~= texte then
 			table.insert(CT.Historique, texte)
 			while #CT.Historique > CC.HistoriqueEnvoyes do table.remove(CT.Historique, 1) end
-		end
-		if CT.Onglet == "ooc" and not CT.Equipe and not texte:find("^[/!]") then
-			texte = CC.PrefixeOOC .. texte
 		end
 		RunConsoleCommand(CT.Equipe and "say_team" or "say", texte)
 	end

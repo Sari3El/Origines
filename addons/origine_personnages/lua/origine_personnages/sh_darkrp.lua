@@ -132,3 +132,25 @@ if CLIENT then
 	hook.Add("DarkRPFinishedLoading", "origine_modele_f4", envelopper)
 	hook.Add("InitPostEntity", "origine_modele_f4", envelopper)
 end
+
+---------------------------------------------------------------------------
+-- Menu F4 désactivé (C.DesactiverF4)
+---------------------------------------------------------------------------
+if SERVER then
+	hook.Add("ShowSpare2", "origine_f4", function()
+		if C.DesactiverF4 then return true end
+	end)
+else
+	local function neutraliserF4()
+		if not C.DesactiverF4 or not DarkRP then return end
+		local rien = function() end
+		DarkRP.openF4Menu = rien
+		DarkRP.toggleF4Menu = rien
+	end
+	hook.Add("DarkRPFinishedLoading", "origine_f4", neutraliserF4)
+	hook.Add("InitPostEntity", "origine_f4", neutraliserF4)
+
+	hook.Add("PlayerBindPress", "origine_f4", function(_, bind, appuye)
+		if C.DesactiverF4 and appuye and string.find(string.lower(bind), "gm_showspare2", 1, true) then return true end
+	end)
+end

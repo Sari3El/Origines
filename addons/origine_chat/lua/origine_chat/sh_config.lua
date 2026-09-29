@@ -13,24 +13,15 @@ ORIGINE.ConfigChat = {
 	TaillePolice = 17,
 	Horodatage = true,       -- [14:32:07] devant chaque message
 
-	MessagesEnMemoire = 300, -- messages gardés par onglet « Tout »
+	MessagesEnMemoire = 300, -- messages gardés en mémoire
 	DureeAffichage = 12,     -- chat fermé : secondes avant qu'un message s'efface
 	LignesFerme = 8,         -- chat fermé : nombre de lignes affichées au maximum
 
 	LongueurMax = 126,       -- longueur maximum d'un message (octets, limite du moteur)
 	HistoriqueEnvoyes = 50,  -- messages envoyés retrouvables avec les flèches haut / bas
 
-	-- Préfixe ajouté automatiquement quand on écrit dans l'onglet OOC
-	PrefixeOOC = "// ",
-
-	Onglets = {
-		{ id = "tout", Nom = "Tout" },
-		{ id = "rp", Nom = "RP" },
-		{ id = "ooc", Nom = "OOC" },
-		{ id = "systeme", Nom = "Système" },
-	},
-
-	-- Préfixes DarkRP reconnus comme du chat OOC (selon la langue de DarkRP)
+	-- Un seul chat général : pour écrire hors RP, /ooc message ou // message.
+	-- Préfixes DarkRP reconnus comme du chat OOC (selon la langue de DarkRP), utilisés par le menu personnage
 	MotifsOOC = { "%(OOC%)", "%(HRP%)", "^OOC", "^HRP", "^%[OOC%]" },
 
 	-- Son joué quand un message contient le nom de votre personnage ("" = aucun)

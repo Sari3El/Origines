@@ -543,6 +543,9 @@ hook.Add("PlayerSpawn", "origine_restauration", function(ply)
 		elseif ORIGINE.PersoActuel(ply) then
 			ORIGINE.AppliquerRace(ply)
 		end
+		-- Mains vides à l'apparition
+		local arme = ORIGINE.Config.ArmeAuSpawn
+		if arme and arme ~= "" and ply:HasWeapon(arme) then ply:SelectWeapon(arme) end
 	end)
 end)
 
