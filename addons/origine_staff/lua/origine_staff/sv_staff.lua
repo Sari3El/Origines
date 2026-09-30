@@ -542,6 +542,11 @@ ACTIONS.job = function(staff, sid, slot, commande)
 	end)
 end
 
+-- Utilisé par le menu TAB (darkrp_modules/origine_tab) : la permission y est vérifiée
+function S.ChangerJob(staff, sid, slot, commande)
+	ACTIONS.job(staff, sid, slot, commande)
+end
+
 ACTIONS.forcer = function(staff, sid, slot)
 	local cible = ORIGINE.JoueurParSid(sid)
 	if not cible or not cible.OrigineDonneesChargees then

@@ -1,7 +1,9 @@
 """Vérifie que chaque fonction ORIGINE.* (ou alias local) appelée est définie quelque part."""
 import pathlib, re, sys
-racine = pathlib.Path(__file__).resolve().parent.parent / "addons"
-fichiers = sorted(racine.rglob("*.lua"))
+racine = pathlib.Path(__file__).resolve().parent.parent
+# Addons + modules DarkRP (menu TAB)
+DOSSIERS = [racine / "addons", racine / "darkrpmodification" / "lua" / "darkrp_modules"]
+fichiers = sorted(f for d in DOSSIERS for f in d.rglob("*.lua"))
 alias_re = re.compile(r"^local\s+(\w+)\s*=\s*(ORIGINE(?:\.\w+)*)\s*$", re.M)
 defs, usages = set(), []
 for f in fichiers:

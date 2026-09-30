@@ -7,12 +7,14 @@ import sys
 
 from lupa import luajit21 as lupa
 
-racine = pathlib.Path(__file__).resolve().parent.parent / "addons"
+racine = pathlib.Path(__file__).resolve().parent.parent
+# Addons + modules DarkRP (menu TAB)
+DOSSIERS = [racine / "addons", racine / "darkrpmodification" / "lua" / "darkrp_modules"]
 lua = lupa.LuaRuntime()
 charger = lua.eval("function(code, nom) local f, err = loadstring(code, nom) return err end")
 
 erreurs = 0
-fichiers = sorted(racine.rglob("*.lua"))
+fichiers = sorted(f for d in DOSSIERS for f in d.rglob("*.lua"))
 for chemin in fichiers:
     err = charger(chemin.read_text(encoding="utf-8"), "@" + str(chemin.relative_to(racine)))
     if err:

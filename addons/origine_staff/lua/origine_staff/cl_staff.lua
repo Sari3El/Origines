@@ -775,7 +775,15 @@ end
 ---------------------------------------------------------------------------
 -- Réseau
 ---------------------------------------------------------------------------
-net.Receive("origine_staff_ouvrir", function() S.Ouvrir() end)
+net.Receive("origine_staff_ouvrir", function()
+	S.Ouvrir()
+	-- Ouverture demandée depuis le menu TAB (« Ouvrir dans !origine ») : fiche du joueur
+	if S.FicheEnAttente then
+		local sid = S.FicheEnAttente
+		S.FicheEnAttente = nil
+		S.OuvrirFicheJoueur(sid)
+	end
+end)
 net.Receive("origine_staff_resultats", function() S.AfficherResultats(ORIGINE.NetLireTable()) end)
 net.Receive("origine_staff_fiche", function()
 	local fiche = ORIGINE.NetLireTable()

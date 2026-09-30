@@ -10,10 +10,12 @@ Cinq addons Garry's Mod (DarkRP + ULX/ULib) réalisés d'après le cahier des ch
 | `origine_inventaire` | SWEP Sacoche, inventaire par personnage, sac de mort, liste des entités autorisées | origine_personnages |
 | `origine_staff` | Menu `!origine`, actions staff, historique, copies avant CK et RPK, logs du serveur | origine_personnages, origine_inventaire |
 | `origine_chat` | Chatbox à la charte : un seul chat général, heure des messages, historique aux flèches, complétion | origine_personnages |
+| `origine_selecteur` | Sélecteur d'armes en haut au centre, cartes avec icône, munitions et barres de cooldown | aucune (charte d'origine_personnages si présent) |
+| `darkrpmodification/lua/darkrp_modules/origine_tab/` | Menu TAB qui remplace le scoreboard de FAdmin (pas un dossier d'addon) | DarkRP, ULX ; origine_personnages et origine_staff conseillés |
 
 ## Installation
 
-1. Copier les **cinq dossiers** de `addons/` dans `garrysmod/addons/` du serveur
+1. Copier les **six dossiers** de `addons/` dans `garrysmod/addons/` du serveur
    (un dossier par système, ne pas les fusionner).
 2. Redémarrer le serveur. La console doit afficher :
    ```
@@ -23,7 +25,10 @@ Cinq addons Garry's Mod (DarkRP + ULX/ULib) réalisés d'après le cahier des ch
    [Origine] origine_hud chargé.
    [Origine] origine_staff chargé.
    [Origine] origine_chat chargé.
+   [Origine] origine_selecteur chargé.
    ```
+   Copier aussi `darkrpmodification/lua/darkrp_modules/origine_tab/` dans le dossier `darkrpmodification`
+   du serveur (menu TAB : DarkRP le charge tout seul).
    Si DarkRP n'est pas lancé, ou si son module faim est désactivé, la console le signale au démarrage.
    Si `origine_personnages` manque, les trois autres ne se lancent pas et le signalent en console.
 3. Remplir la liste des entités rangeables :
@@ -46,6 +51,10 @@ Tous les réglages sont dans les `sh_config.lua`, commentés en français :
   (rétention 14 jours, regroupement des dégâts, catégories désactivables).
 - `origine_chat/lua/origine_chat/sh_config.lua` : taille, police, durée d'affichage, longueur maximum,
   anti-spam, commandes proposées.
+- `origine_selecteur/lua/origine_selecteur/sh_config.lua` : fermeture automatique (3 s), seuil d'affichage
+  des cooldowns (1 s), sons (activés, volume, fichiers), armes en tête du slot 1 (Sacoche).
+- `darkrpmodification/lua/darkrp_modules/origine_tab/sh_config.lua` : liens Discord / règlement / collection
+  Workshop (**à remplir**), seuils du ping, actions staff et commandes ULX associées.
 
 ### Champs optionnels dans `job.lua`
 
@@ -115,6 +124,45 @@ Dans `darkrpmodification/lua/darkrp_config/disabled_defaults.lua` :
 | Staff | Historique des actions staff (qui, quoi, quand, sur qui, avant / après, raison) |
 
 Les logs sont écrits par lots toutes les 5 secondes (table `origine_logs`) et supprimés après 14 jours.
+
+## Menu TAB
+
+Maintenir TAB ouvre le menu, relâcher le ferme ; il ne s'ouvre pas pendant le menu personnage.
+Joueurs rangés par catégorie de job (ordre du F4), puis par métier et par nom ; les joueurs qui choisissent
+leur personnage sont tout en bas. Cliquer sur une ligne ouvre la fiche (aperçu 3D, race, métier, badge,
+couper sa voix pour soi).
+
+Permissions ULX (XGUI > Groupes, catégorie « Origine TAB », données par défaut aux admins) :
+
+| Permission | Effet |
+|---|---|
+| `origine_tab_staff` | Voir le nom Steam, le SteamID, le slot, les kills/morts, les PV et les Covan ; chercher par nom Steam / SteamID |
+| `origine_tab_job` | Bouton « Changer le job » (pas d'équivalent ULX) |
+| `origine_menu` | Bouton « Ouvrir dans !origine » (fiche du joueur dans le menu staff) |
+
+Les autres boutons lancent les commandes ULX (`ulx kick`, `ulx ban`, `ulx jail`, `ulx freeze`, `ulx goto`,
+`ulx bring`, `ulx return`, `ulx spectate`, `ulx gag`, `ulx mute`, `ulx strip`, `ulx cloak`, `ulx god`,
+`ulx ignite`, `ulx psay`, `ulx slap`, `ulx ragdoll`, `ulx noclip`, `ulx hp`, `ulx armor`, et pour le
+bouton « Serveur » : `ulx map`, `ulx stopsounds`, `ulx cleanup`, `ulx csay`). Un bouton n'apparaît que si
+le staff a la permission de la commande ; ULX revérifie tout côté serveur.
+
+## Sélecteur d'armes
+
+Une colonne par slot (1 à 6), la Sacoche toujours en tête du slot 1. Molette, touches 1 à 6, clic gauche
+pour équiper, clic droit pour fermer, `lastinv` et `hud_fastswitch 1` fonctionnent comme dans GMod.
+Les cooldowns sont lus sur `NextPrimaryFire` / `NextSecondaryFire` (aucun SWEP à modifier) ; un SWEP peut
+aussi donner les siens :
+
+```lua
+function SWEP:OrigineCooldowns()
+	return {
+		primaire   = { fin = self:GetNextPrimaryFire(),   duree = 30 },
+		secondaire = { fin = self:GetNextSecondaryFire(), duree = 10 },
+	}
+end
+```
+
+Les deux sons (`sound/origine_selecteur/`) sont à mettre dans la collection Workshop du serveur.
 
 ## Pour les autres addons
 
@@ -189,6 +237,13 @@ Mise en place : les Covan qu'un joueur avait déjà dans DarkRP sont transféré
   Le sac de mort est codé mais désactivé (`Sac.Actif = false` dans la config d'origine_inventaire).
   `dropweapondeath` et `dropmoneyondeath` de DarkRP sont coupés.
 
+- **Menu TAB — qui voit quoi.** Le tableau du cahier réserve au staff le nom du personnage, alors que ses
+  tests et la phrase sur l'immersion disent que les joueurs voient les noms de personnage et que seul le
+  staff voit en plus le nom Steam, le SteamID et le slot. Choix retenu : tout le monde voit le nom du
+  personnage, la race, le métier, le badge Staff/EVENT et le ping ; le staff voit en plus le nom Steam,
+  le SteamID, le slot, les kills/morts, les PV et les Covan (envoyés par le serveur au staff seulement).
+  L'avatar Steam n'est affiché qu'au staff.
+
 ## À définir plus tard (prévu dans le code, valeurs neutres)
 
 - Valeurs chiffrées de chaque race (seule « Être Vivant » a sa vitesse ×0,9) : `C.Races[].Mod`.
@@ -213,6 +268,7 @@ python3 tests/verifier_references.py  # chaque fonction ORIGINE.* appelée exist
 python3 tests/verifier_globales.py    # aucune variable globale inconnue (fautes de frappe)
 python3 tests/tests_logique.py        # noms, Covan, taux, tirage, piles d'inventaire
 python3 tests/tester_jobs.py          # jobs.lua : commandes uniques, catégories, armes
+python3 tests/tester_selecteur.py     # sélecteur : cooldowns, Sacoche en tête, fastswitch, fermeture
 ```
 
 En jeu, les tests de validation du cahier des charges :

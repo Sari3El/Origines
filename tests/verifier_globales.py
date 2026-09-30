@@ -8,7 +8,9 @@ import sys
 
 from luaparser import ast, astnodes
 
-racine = pathlib.Path(__file__).resolve().parent.parent / "addons"
+racine = pathlib.Path(__file__).resolve().parent.parent
+# Addons + modules DarkRP (menu TAB)
+DOSSIERS = [racine / "addons", racine / "darkrpmodification" / "lua" / "darkrp_modules"]
 
 # API globales de Garry's Mod / DarkRP / ULib utilisées par les addons
 CONNUES = set("""
@@ -28,6 +30,7 @@ COLLISION_GROUP_IN_VEHICLE COLLISION_GROUP_PLAYER COLLISION_GROUP_WEAPON
 SOLID_VPHYSICS MOVETYPE_VPHYSICS SIMPLE_USE MASK_SHOT MASK_VISIBLE
 DMG_BURN DMG_DROWN GetGlobalBool SetGlobalBool CONTINUOUS_USE IN_USE NULL STENCIL_ALWAYS STENCIL_REPLACE STENCIL_KEEP STENCIL_EQUAL DMG_BLAST DMG_BUCKSHOT DMG_BULLET DMG_CLUB DMG_CRUSH DMG_FALL DMG_POISON DMG_SHOCK DMG_SLASH DMG_VEHICLE Player gameevent IN_JUMP IN_DUCK TEAM_UNASSIGNED TEAM_CONNECTING TEAM_SPECTATOR
 RunConsoleCommand cookie gui input SetClipboardText MOUSE_RIGHT KEY_ENTER KEY_PAD_ENTER KEY_UP KEY_DOWN KEY_TAB KEY_ESCAPE
+CloseDermaMenus Derma_StringRequest GetConVar RealTime CHAN_STATIC IN_ATTACK
 """.split())
 
 
@@ -192,7 +195,7 @@ class Analyse:
 
 definies_globales = set()
 resultats = []
-for f in sorted(racine.rglob("*.lua")):
+for f in sorted(f for d in DOSSIERS for f in d.rglob("*.lua")):
     arbre = ast.parse(f.read_text(encoding="utf-8"))
     a = Analyse(f)
     a.bloc(arbre.body.body, Portee())
