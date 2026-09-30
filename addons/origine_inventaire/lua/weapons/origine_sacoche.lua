@@ -47,6 +47,7 @@ end
 function SWEP:SecondaryAttack()
 	self:SetNextSecondaryFire(CurTime() + 0.4)
 	if CLIENT then return end
+	if ORIGINE and ORIGINE.EstImmobilise and ORIGINE.EstImmobilise(self:GetOwner()) then return end
 	net.Start("origine_inv_ouvrir")
 	net.Send(self:GetOwner())
 end

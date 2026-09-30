@@ -6,6 +6,8 @@
 	  modele : modèle de l'entité
 	  arme   : classe d'arme si c'est une arme, sinon nil
 	  n      : quantité dans la case (1 à TaillePile)
+	  donnees: (facultatif) données propres à l'objet (texte d'une missive…) ;
+	           un objet avec des données ne s'empile jamais
 -------------------------------------------------------------------------]]
 
 ORIGINE.Inv = ORIGINE.Inv or {}
@@ -25,13 +27,36 @@ function I.ChargerListe()
 	ORIGINE_INV = nil -- une seule table globale : ORIGINE
 end
 
+-- Autorise une classe en plus de sh_entites.lua (utilisé par les autres addons : parchemin, missive…)
+function I.Autoriser(classe)
+	I.Autorisees = I.Autorisees or {}
+	I.Autorisees[classe] = true
+end
+
+--[[
+	Actions en plus de Équiper / Déposer / Détruire pour une classe (menu clic droit).
+	I.AjouterActionObjet("origine_missive", "lire", "Lire", "icon16/book_open.png", function(ply, objet, index) ... end)
+	La fonction n'est appelée que côté serveur.
+]]
+I.ActionsObjet = I.ActionsObjet or {}
+function I.AjouterActionObjet(classe, id, nom, icone, fn)
+	I.ActionsObjet[classe] = I.ActionsObjet[classe] or {}
+	I.ActionsObjet[classe][id] = { nom = nom, icone = icone, fn = fn }
+end
+
 function I.EstAutorisee(classe)
 	if not isstring(classe) or classe == "" then return false end
 	if I.Interdites[classe] or ORIGINE.EstSwepDeRace(classe) then return false end
 	return I.Autorisees[classe] == true
 end
 
+local compteurUnique = 0
 function I.Cle(objet)
+	if objet.donnees then
+		-- Jamais empilé : chaque objet avec des données est unique
+		compteurUnique = compteurUnique + 1
+		return "unique|" .. compteurUnique
+	end
 	return (objet.classe or "") .. "|" .. (objet.arme or "") .. "|" .. string.lower(objet.modele or "")
 end
 
@@ -42,7 +67,8 @@ function I.Capacite(ply)
 end
 
 function I.Copier(objet)
-	return { classe = objet.classe, modele = objet.modele, arme = objet.arme }
+	return { classe = objet.classe, modele = objet.modele, arme = objet.arme,
+		donnees = objet.donnees and table.Copy(objet.donnees) or nil }
 end
 
 -- Ajoute UN objet dans les cases (piles de TaillePile). Retourne true si rangé.
@@ -91,6 +117,7 @@ end
 
 -- Nom d'affichage d'un objet
 function I.NomObjet(objet)
+	if objet.donnees and objet.donnees.nom then return objet.donnees.nom end
 	if objet.arme then
 		local w = weapons.GetStored(objet.arme)
 		if w and w.PrintName then

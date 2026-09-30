@@ -56,6 +56,14 @@ ORIGINE.ConfigStaff = {
 	},
 }
 
+-- Pour les autres addons : ORIGINE.AjouterTypeHistorique("banque", "Banque")
+function ORIGINE.AjouterTypeHistorique(id, nom)
+	for _, t in ipairs(ORIGINE.ConfigStaff.TypesHistorique) do
+		if t.id == id then t.Nom = nom return end
+	end
+	table.insert(ORIGINE.ConfigStaff.TypesHistorique, { id = id, Nom = nom })
+end
+
 function ORIGINE.NomTypeHistorique(id)
 	for _, t in ipairs(ORIGINE.ConfigStaff.TypesHistorique) do
 		if t.id == id then return t.Nom end

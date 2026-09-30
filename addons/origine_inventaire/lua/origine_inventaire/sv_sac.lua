@@ -44,8 +44,9 @@ local function tasDeCovan(pos, montant)
 	end
 end
 
--- À la mort : sac (Covan perdus + inventaire si Sac.Actif) et crâne
-hook.Add("DoPlayerDeath", "origine_sac", function(ply)
+-- À la mort : sac (Covan perdus + inventaire si Sac.Actif) et crâne.
+-- Aussi appelé par origine_mise_a_terre quand un joueur se déconnecte à terre.
+function I.LacherSacDeMort(ply)
 	if not ORIGINE.PersoActuel(ply) then return end
 	local nom = ORIGINE.NomComplet(ply)
 	local pos = ply:GetPos()
@@ -96,7 +97,9 @@ hook.Add("DoPlayerDeath", "origine_sac", function(ply)
 			crane:SetNW2String("origine_nourriture_nom", nom)
 		end
 	end
-end)
+end
+
+hook.Add("DoPlayerDeath", "origine_sac", function(ply) I.LacherSacDeMort(ply) end)
 
 -- Prendre les Covan du sac (touche E)
 function I.PrendreCovanSac(ply, sac)

@@ -40,7 +40,10 @@ end)
 -- Copie journalière
 ---------------------------------------------------------------------------
 local DOSSIER = "origine/sauvegardes"
-local TABLES = { "origine_comptes", "origine_personnages", "origine_inventaires", "origine_historique", "origine_copies" }
+-- Les autres addons ajoutent leurs tables ici (banque, missives, tickets…)
+ORIGINE.TablesSauvegarde = ORIGINE.TablesSauvegarde or {
+	"origine_comptes", "origine_personnages", "origine_inventaires", "origine_historique", "origine_copies",
+}
 
 function ORIGINE.CopieJournaliere()
 	if not C.Sauvegarde.CopieJournaliere then return end
@@ -48,6 +51,7 @@ function ORIGINE.CopieJournaliere()
 	local nom = DOSSIER .. "/origine_" .. os.date("%Y-%m-%d") .. ".json"
 	if file.Exists(nom, "DATA") then return end
 
+	local TABLES = ORIGINE.TablesSauvegarde
 	local copie, restantes = { date = os.time(), tables = {} }, #TABLES
 	for _, t in ipairs(TABLES) do
 		DB.Requete("SELECT * FROM " .. t, nil, function(lignes)

@@ -61,6 +61,9 @@ function I.MenuObjet(objet, envoyerAction)
 			equiper:SetText("Équiper (déjà en main)")
 		end
 	end
+	for id, a in SortedPairs(I.ActionsObjet[objet.classe] or {}) do
+		m:AddOption(a.nom, function() envoyerAction(id) end):SetIcon(a.icone or "icon16/star.png")
+	end
 	m:AddOption("Déposer", function() envoyerAction("deposer") end):SetIcon("icon16/arrow_down.png")
 	m:AddSpacer()
 	m:AddOption("Détruire", function()

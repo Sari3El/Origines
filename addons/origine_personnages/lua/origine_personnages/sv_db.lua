@@ -73,6 +73,14 @@ function DB.Requete(requete, params, callback, synchrone)
 		if callback then callback(nil, err) end
 		return
 	end
+	-- SQLite de GMod renvoie les valeurs NULL sous forme de texte "NULL" : on les remet à nil
+	if res then
+		for _, ligne in ipairs(res) do
+			for k, v in pairs(ligne) do
+				if v == "NULL" then ligne[k] = nil end
+			end
+		end
+	end
 	if callback then callback(res or {}) end
 end
 
@@ -86,6 +94,47 @@ function DB.Lot(requetes, synchrone)
 	else
 		for _, r in ipairs(requetes) do DB.Requete(r[1], r[2], nil, synchrone) end
 	end
+end
+
+--[[
+	Transaction : toutes les requêtes passent, ou aucune (banque : pas de Covan perdus
+	ni dupliqués si le serveur plante au milieu).
+	requetes = { { sql, params }, ... } ; callback(ok)
+]]
+function DB.Transaction(requetes, callback)
+	if DB.Mode == "mysql" and DB.Conn and DB.Conn.createTransaction then
+		local tr = DB.Conn:createTransaction()
+		for _, r in ipairs(requetes) do
+			local q = DB.Conn:prepare(r[1])
+			for i = 1, compterParams(r[1]) do
+				local v = r[2] and r[2][i]
+				if v == nil then q:setNull(i)
+				elseif isnumber(v) then q:setNumber(i, v)
+				elseif isbool(v) then q:setBoolean(i, v)
+				else q:setString(i, tostring(v)) end
+			end
+			tr:addQuery(q)
+		end
+		function tr:onSuccess() if callback then callback(true) end end
+		function tr:onError(err)
+			erreurSQL(err, "transaction")
+			if callback then callback(false) end
+		end
+		tr:start()
+		return
+	end
+	sql.Query("BEGIN")
+	for _, r in ipairs(requetes) do
+		local construite = DB.Construire(r[1], r[2])
+		if sql.Query(construite) == false then
+			erreurSQL(sql.LastError(), construite)
+			sql.Query("ROLLBACK")
+			if callback then callback(false) end
+			return
+		end
+	end
+	sql.Query("COMMIT")
+	if callback then callback(true) end
 end
 
 -- Déclarations des tables. {sqlite, mysql} quand la syntaxe diffère.

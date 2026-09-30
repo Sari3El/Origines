@@ -225,6 +225,8 @@ local function peutOuvrir()
 	if ORIGINE.MenuOuvert and ORIGINE.MenuOuvert() then return false end
 	if ORIGINE.EnMenu and ORIGINE.EnMenu(ply) then return false end
 	if ORIGINE.TabOuvert and ORIGINE.TabOuvert() then return false end
+	-- À terre ou ligoté (origine_mise_a_terre)
+	if ORIGINE.EstImmobilise and ORIGINE.EstImmobilise(ply) then return false end
 	-- Inventaire, sac, menu staff ou toute autre fenêtre avec curseur
 	if vgui.CursorVisible() then return false end
 	return true

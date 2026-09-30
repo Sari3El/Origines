@@ -455,6 +455,12 @@ local function dessinerBloc(ply)
 		cVariation.a = math.Clamp(reste * 2, 0, 1) * 255
 		UI.TexteOmbre((variation > 0 and "+" or "-") .. ORIGINE.FormaterNombre(math.abs(variation)), "hud_variation",
 			w - G.pad, G.infoY + S(9) - (1 - reste) * S(6), cVariation, TEXT_ALIGN_RIGHT, TEXT_ALIGN_CENTER)
+	elseif ORIGINE.TexteCycle then
+		-- Cycle jour/nuit (origine_cycle), sous les Covan : « Nuit · 23:40 »
+		local cycle = ORIGINE.TexteCycle()
+		if cycle then
+			UI.TexteOmbre(cycle, "hud_chiffres", w - G.pad, G.infoY + S(9), COL.TexteSombre, TEXT_ALIGN_RIGHT, TEXT_ALIGN_CENTER)
+		end
 	end
 
 	-- Identité : nom, puis race · métier

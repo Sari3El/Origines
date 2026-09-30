@@ -326,6 +326,9 @@ function ORIGINE.DemanderChangement(ply)
 	if ply.isArrested and ply:isArrested() then return ORIGINE.Notifier(ply, "Impossible de changer de personnage en étant arrêté.", "erreur") end
 	if ply.isWanted and ply:isWanted() then return ORIGINE.Notifier(ply, "Impossible de changer de personnage en étant recherché.", "erreur") end
 	if C.EstMenotte(ply) then return ORIGINE.Notifier(ply, "Impossible de changer de personnage en étant menotté.", "erreur") end
+	-- Autres addons (mise à terre, ligoté…) : return false, "raison"
+	local autorise, raison = hook.Run("origine_PeutChangerPerso", ply)
+	if autorise == false then return ORIGINE.Notifier(ply, raison or "Impossible de changer de personnage maintenant.", "erreur") end
 
 	ply.OrigineDernierChangement = maintenant
 	ORIGINE.QuitterPerso(ply)

@@ -81,6 +81,41 @@ local function recevoirStaff(nom, fn, parSeconde)
 		fn(ply, len)
 	end, parSeconde)
 end
+S.RecevoirStaff = recevoirStaff
+
+--[[
+	Données des autres addons liées à un personnage (compte en banque, coffret de missives…),
+	copiées avant un CK/RPK, remises à zéro, puis restaurées si le CK/RPK est annulé.
+	S.AjouterExtensionCK({
+		nom = "banque",
+		lire = function(sid, slot, callback) callback(donnees) end,  -- pour la copie
+		vider = function(sid, slot, typ) end,                        -- CK/RPK
+		restaurer = function(sid, slot, donnees) end,                -- annulation
+	})
+]]
+S.ExtensionsCK = S.ExtensionsCK or {}
+function S.AjouterExtensionCK(ext)
+	for i, e in ipairs(S.ExtensionsCK) do
+		if e.nom == ext.nom then S.ExtensionsCK[i] = ext return end
+	end
+	S.ExtensionsCK[#S.ExtensionsCK + 1] = ext
+end
+
+-- Lit les données de toutes les extensions, puis callback({ [nom] = donnees })
+local function lireExtensions(sid, slot, callback)
+	local resultat, i = {}, 0
+	local function suivante()
+		i = i + 1
+		local ext = S.ExtensionsCK[i]
+		if not ext then return callback(resultat) end
+		if not ext.lire then return suivante() end
+		ext.lire(sid, slot, function(donnees)
+			resultat[ext.nom] = donnees
+			suivante()
+		end)
+	end
+	suivante()
+end
 
 ---------------------------------------------------------------------------
 -- Accès aux données (connecté ou non)
@@ -266,9 +301,9 @@ function S.CK(staff, sid, slot, raison, typ)
 	S.Donnees(sid, function(compte, persos, cible)
 		local p = persos and persos[slot]
 		if not p then return ORIGINE.Notifier(staff, "Aucun personnage sur ce slot.", "erreur") end
-		I.LireStaff(sid, slot, function(inventaire)
+		I.LireStaff(sid, slot, function(inventaire) lireExtensions(sid, slot, function(extensions)
 			-- Copie complète juste avant, pour pouvoir annuler
-			local copie = { perso = table.Copy(p), inventaire = inventaire }
+			local copie = { perso = table.Copy(p), inventaire = inventaire, extensions = extensions }
 			DB.Requete([[INSERT INTO origine_copies (date, type, steamid64, slot, staff_sid, raison, donnees, restauree)
 				VALUES (?, ?, ?, ?, ?, ?, ?, 0)]], {
 				os.time(), typ, sid, slot, IsValid(staff) and staff:SteamID64() or nil, raison, util.TableToJSON(copie),
@@ -277,6 +312,9 @@ function S.CK(staff, sid, slot, raison, typ)
 
 			local surSlot = cible and cible.OrigineSlot == slot
 			I.Vider(sid, slot)
+			for _, ext in ipairs(S.ExtensionsCK) do
+				if ext.vider then ext.vider(sid, slot, typ) end
+			end
 			p.covan = ORIGINE.MontantDepart()
 			p.armes, p.munitions, p.licences = {}, {}, {}
 			p.pv, p.armure, p.faim = nil, nil, 100
@@ -297,7 +335,7 @@ function S.CK(staff, sid, slot, raison, typ)
 				avant = avant, apres = resumePerso(p), raison = raison,
 			})
 			succes(staff, sid, (typ == "ck" and "CK" or "RPK") .. " effectué.")
-		end)
+		end) end)
 	end)
 end
 
@@ -324,6 +362,10 @@ function S.Annuler(staff, id)
 				for k in pairs(cases) do cases[k] = nil end
 				for i, c in ipairs(copie.inventaire or {}) do cases[i] = c end
 			end)
+			for _, ext in ipairs(S.ExtensionsCK) do
+				local donnees = copie.extensions and copie.extensions[ext.nom]
+				if ext.restaurer and donnees ~= nil then ext.restaurer(sid, slot, donnees) end
+			end
 			DB.Requete("UPDATE origine_copies SET restauree = 1 WHERE id = ?", { id })
 
 			if cible and ORIGINE.EnMenu(cible) then ORIGINE.EnvoyerMenu(cible, slot) end

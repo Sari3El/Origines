@@ -97,6 +97,9 @@ ORIGINE.Tab.Config = {
 		{ id = "noclip", Nom = "Noclip", ulx = "ulx noclip" },
 		{ id = "hp", Nom = "Régler les PV", ulx = "ulx hp", args = { { libelle = "Points de vie", indication = "100", numerique = true } } },
 		{ id = "armor", Nom = "Régler l'armure", ulx = "ulx armor", args = { { libelle = "Armure", indication = "100", numerique = true } } },
+		-- origine_mise_a_terre : relever un joueur à terre, délier un captif
+		{ id = "relever", Nom = "Relever", ulx = "ulx relever" },
+		{ id = "delier", Nom = "Délier", ulx = "ulx delier" },
 		-- Sans équivalent ULX : permission propre « origine_tab_job »
 		{ id = "job", Nom = "Changer le job", permission = "origine_tab_job" },
 	},

@@ -366,6 +366,62 @@ function ORIGINE.RaceJoueur(ply)
 	local id = ply:GetNW2String("origine_race", "")
 	return id ~= "" and id or nil
 end
+---------------------------------------------------------------------------
+-- Permissions ULX des addons Origine (attribuables dans XGUI)
+---------------------------------------------------------------------------
+ORIGINE.Permissions = ORIGINE.Permissions or {}
+
+-- acces : "superadmin" ou "admin" (rangs qui l'ont par défaut)
+function ORIGINE.EnregistrerPermission(nom, acces, description)
+	ORIGINE.Permissions[nom] = { acces = acces, description = description }
+	if SERVER and ULib and ULib.ucl and ULib.ucl.registerAccess then
+		local niveau = acces == "admin" and ULib.ACCESS_ADMIN or ULib.ACCESS_SUPERADMIN
+		ULib.ucl.registerAccess(nom, niveau, description or nom, "Origine")
+	end
+end
+
+if SERVER and hook then
+	local function tout()
+		for nom, p in pairs(ORIGINE.Permissions) do ORIGINE.EnregistrerPermission(nom, p.acces, p.description) end
+	end
+	hook.Add("Initialize", "origine_permissions", tout)
+	hook.Add("ULibLoaded", "origine_permissions", tout)
+end
+
+-- Vérifiée côté serveur à chaque action ; côté client seulement pour afficher les boutons
+function ORIGINE.APermission(ply, nom)
+	if not IsValid(ply) then return false end
+	if ULib and ULib.ucl and ULib.ucl.query then return ULib.ucl.query(ply, nom) == true end
+	local p = ORIGINE.Permissions[nom]
+	if p and p.acces == "admin" then return ply:IsAdmin() end
+	return ply:IsSuperAdmin()
+end
+
+-- Faction d'un joueur = catégorie de son job DarkRP (nil sans job ou en sélection)
+function ORIGINE.FactionDe(ply)
+	local job = RPExtraTeams and IsValid(ply) and RPExtraTeams[ply:Team()]
+	if not job or job.origine_cache then return nil end
+	return job.category
+end
+
+-- Liste des factions (catégories de jobs visibles), dans l'ordre du F4
+function ORIGINE.Factions()
+	local liste, vus = {}, {}
+	local cats = DarkRP and DarkRP.getCategories and DarkRP.getCategories()
+	for _, cat in ipairs(cats and cats.jobs or {}) do
+		local visible = false
+		for _, job in ipairs(cat.members or {}) do
+			if not job.origine_cache then visible = true break end
+		end
+		if visible and not vus[cat.name] then
+			vus[cat.name] = true
+			liste[#liste + 1] = { nom = cat.name, couleur = cat.color, ordre = cat.sortOrder or 100 }
+		end
+	end
+	table.sort(liste, function(a, b) return a.ordre < b.ordre end)
+	return liste
+end
+
 -- Nom Steam (avec DarkRP, Nick() renvoie le nom RP)
 function ORIGINE.NomSteam(ply)
 	return ply.SteamName and ply:SteamName() or ply:Nick()

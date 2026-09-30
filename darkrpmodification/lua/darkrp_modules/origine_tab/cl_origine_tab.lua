@@ -751,6 +751,14 @@ local function construire()
 		surface.SetFont(P("titre"))
 		local tw = surface.GetTextSize(cfg.NomServeur)
 		texte(player.GetCount() .. " / " .. game.MaxPlayers() .. " joueurs", "texte", tw + S(18), eh / 2 + S(3), c.TexteSombre, TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER)
+		-- Tickets en attente (origine_tickets), pour le staff
+		local tk = ORIGINE.Tickets
+		if T.EstStaff and tk and tk.EnAttente then
+			surface.SetFont(P("texte"))
+			local jw = surface.GetTextSize(player.GetCount() .. " / " .. game.MaxPlayers() .. " joueurs")
+			texte("·  " .. tk.EnAttente .. " ticket(s) en attente (F6)", "texte", tw + S(30) + jw, eh / 2 + S(3),
+				tk.EnAttente > 0 and c.Alerte or c.TexteSombre, TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER)
+		end
 	end
 	for n = #cfg.Liens, 1, -1 do
 		local lien = cfg.Liens[n]

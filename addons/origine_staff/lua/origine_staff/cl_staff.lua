@@ -28,7 +28,9 @@ end
 ---------------------------------------------------------------------------
 -- Petits composants
 ---------------------------------------------------------------------------
-local function titreSection(parent, texte)
+local titreSection
+function S.TitreSection(parent, texte) return titreSection(parent, texte) end
+function titreSection(parent, texte)
 	local p = parent:Add("DPanel")
 	p:Dock(TOP)
 	p:SetTall(UI.S(34))
@@ -125,6 +127,14 @@ end
 ---------------------------------------------------------------------------
 -- Fenêtre principale
 ---------------------------------------------------------------------------
+S.OngletsExtra = S.OngletsExtra or {}
+function S.AjouterOnglet(nom, fn, visible)
+	for i, o in ipairs(S.OngletsExtra) do
+		if o.nom == nom then S.OngletsExtra[i] = { nom = nom, fn = fn, visible = visible } return end
+	end
+	S.OngletsExtra[#S.OngletsExtra + 1] = { nom = nom, fn = fn, visible = visible }
+end
+
 function S.Ouvrir()
 	if IsValid(S.Fenetre) then S.Fenetre:Close() end
 	local w, h = math.min(ScrW() - UI.S(40), UI.S(1280)), math.min(ScrH() - UI.S(40), UI.S(820))
@@ -148,6 +158,18 @@ function S.Ouvrir()
 	bLogs:Dock(LEFT) bLogs:SetWide(UI.S(200)) bLogs:DockMargin(0, 0, UI.S(8), 0)
 	local bServeur = UI.Bouton(onglets, "Serveur", function() S.OngletServeur() end)
 	bServeur:Dock(LEFT) bServeur:SetWide(UI.S(200))
+
+	-- Onglets ajoutés par les autres addons (missives…) : S.AjouterOnglet(nom, fn(corps), visible())
+	for _, o in ipairs(S.OngletsExtra or {}) do
+		if not o.visible or o.visible() then
+			local b = UI.Bouton(onglets, o.nom, function()
+				S.Onglet = o.nom
+				S.Corps:Clear()
+				o.fn(S.Corps)
+			end)
+			b:Dock(LEFT) b:SetWide(UI.S(200)) b:DockMargin(UI.S(8), 0, 0, 0)
+		end
+	end
 
 	S.OngletJoueurs()
 end

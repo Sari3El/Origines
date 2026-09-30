@@ -1,7 +1,7 @@
 # Médiéval RP — Origine du monde
 
-Cinq addons Garry's Mod (DarkRP + ULX/ULib) réalisés d'après le cahier des charges
-« Médiéval RP : Origine du monde », plus un chat à la même charte.
+Addons Garry's Mod (DarkRP + ULX/ULib) réalisés d'après les cahiers des charges
+« Médiéval RP : Origine du monde ».
 
 | Dossier | Contenu | Dépend de |
 |---|---|---|
@@ -11,11 +11,16 @@ Cinq addons Garry's Mod (DarkRP + ULX/ULib) réalisés d'après le cahier des ch
 | `origine_staff` | Menu `!origine`, actions staff, historique, copies avant CK et RPK, logs du serveur | origine_personnages, origine_inventaire |
 | `origine_chat` | Chatbox à la charte : un seul chat général, heure des messages, historique aux flèches, complétion | origine_personnages |
 | `origine_selecteur` | Sélecteur d'armes en haut au centre, cartes avec icône, munitions et barres de cooldown | aucune (charte d'origine_personnages si présent) |
+| `origine_cycle` | Cycle jour/nuit (15 min / 45 min), heure RP, pleine lune, éclairage, StormFox 2 facultatif | origine_personnages |
+| `origine_banque` | Guichet, compte par personnage, virements, relevé, trésor, prêts, onglet Administration | origine_personnages, origine_staff |
+| `origine_mise_a_terre` | Mise à terre à 15 PV ou moins, relever, ligoter, escorter, délier | origine_personnages, origine_inventaire |
+| `origine_courrier` | Missives sur parchemin : personnages, faction, autres factions, tout le serveur | origine_personnages, origine_inventaire, origine_staff |
+| `origine_tickets` | Tickets F6 : demandes au staff, file, historique, statistiques | origine_personnages |
 | `darkrpmodification/lua/darkrp_modules/origine_tab/` | Menu TAB qui remplace le scoreboard de FAdmin (pas un dossier d'addon) | DarkRP, ULX ; origine_personnages et origine_staff conseillés |
 
 ## Installation
 
-1. Copier les **six dossiers** de `addons/` dans `garrysmod/addons/` du serveur
+1. Copier les **onze dossiers** de `addons/` dans `garrysmod/addons/` du serveur
    (un dossier par système, ne pas les fusionner).
 2. Redémarrer le serveur. La console doit afficher :
    ```
@@ -26,6 +31,11 @@ Cinq addons Garry's Mod (DarkRP + ULX/ULib) réalisés d'après le cahier des ch
    [Origine] origine_staff chargé.
    [Origine] origine_chat chargé.
    [Origine] origine_selecteur chargé.
+   [Origine] origine_cycle chargé.
+   [Origine] origine_banque chargé.
+   [Origine] origine_mise_a_terre chargé.
+   [Origine] origine_courrier chargé.
+   [Origine] origine_tickets chargé.
    ```
    Copier aussi `darkrpmodification/lua/darkrp_modules/origine_tab/` dans le dossier `darkrpmodification`
    du serveur (menu TAB : DarkRP le charge tout seul).
@@ -53,6 +63,16 @@ Tous les réglages sont dans les `sh_config.lua`, commentés en français :
   anti-spam, commandes proposées.
 - `origine_selecteur/lua/origine_selecteur/sh_config.lua` : fermeture automatique (3 s), seuil d'affichage
   des cooldowns (1 s), sons (désactivés par défaut), armes en tête du slot 1 (Sacoche).
+- `origine_cycle/lua/origine_cycle/sh_config.lua` : durées (15 / 45 min, transitions 2 min), pleine lune
+  (1 nuit sur 4), messages RP, éclairage par paliers, brouillard, ciel.
+- `origine_banque/lua/origine_banque/sh_config.lua` : frais (0 / 2 / 2 %), portée du guichet, prêts
+  (montant et taux maximum, échéance), jobs qui consultent le trésor, prêtent ou retirent.
+- `origine_mise_a_terre/lua/origine_mise_a_terre/sh_config.lua` : seuil (15 PV), compte à rebours (3 min),
+  guérisseurs, durées et PV de relevage, ligoter / délier, déconnexion = mort.
+- `origine_courrier/lua/origine_courrier/sh_config.lua` : prix du parchemin, longueur (1 000), délais
+  (30 s / 10 min), jobs autorisés pour les missives générales, taille du coffret (100), touche.
+- `origine_tickets/lua/origine_tickets/sh_config.lua` : touche (F6), catégories, délai (2 min), rétention
+  (90 jours), priorités, webhook Discord.
 - `darkrpmodification/lua/darkrp_modules/origine_tab/sh_config.lua` : liens Discord / règlement / collection
   Workshop (**à remplir**), seuils du ping, actions staff et commandes ULX associées.
 
@@ -84,6 +104,15 @@ Sans ces champs : `PVMaxDefaut` / `ArmureMaxDefaut` de la config (100), et les v
 | Chat : ↑ / ↓ | | Tous | Revenir sur les messages déjà envoyés |
 | Chat : Tab | | Tous | Compléter une commande (`/`, `!`) ou un nom de joueur |
 | Chat : clic droit | | Tous | Copier, répondre en MP, ignorer un joueur, ouvrir un lien |
+| E sur un guichet | | Tous | Menu de la banque |
+| E sur un joueur à terre / ligoté | | Tous | Relever, ligoter / délier, escorter, lâcher |
+| `!missives` | | Tous | Coffret de missives |
+| `/parchemin` | | Tous | Acheter un parchemin vierge (aussi au F4, onglet Entités) |
+| E sur un parchemin / une missive | | Tous | Écrire / lire |
+| F6, `!tickets` | | Tous | Menu des tickets (file des tickets pour le staff) |
+| `!report message` | | Tous | Ticket rapide |
+| `!cycle jour`, `nuit`, `heure 23:40`, `pause`, `reprendre`, `lune oui/non/auto` | `origine_cycle …` | `origine_cycle_admin` | Régler le cycle jour/nuit |
+| `ulx relever <joueur>`, `ulx delier <joueur>` | | ULX (admins) | Relever / délier (aussi dans le TAB) |
 
 La permission `origine_menu` est donnée aux superadmins par défaut et s'attribue à d'autres rangs
 dans XGUI (onglet Groupes, catégorie « Origine »). Elle est vérifiée côté serveur à chaque action.
@@ -164,6 +193,92 @@ end
 
 Le sélecteur est silencieux (sons désactivables / remplaçables dans sa config).
 
+## Permissions ULX des nouveaux systèmes
+
+Toutes dans XGUI > Groupes, catégorie « Origine » (sauf `ulx relever` / `ulx delier`, catégorie ULX « Origine »).
+
+| Permission | Par défaut | Effet |
+|---|---|---|
+| `origine_cycle_admin` | admins | `!cycle` : phase, heure, pause, pleine lune |
+| `origine_banque_admin` | superadmins | Onglet Administration du guichet ; placer et déplacer les guichets |
+| `origine_courrier_admin` | superadmins | Onglet Missives de `!origine` (avec `origine_menu`) : lire et supprimer |
+| `origine_tickets_staff` | admins | Traiter les tickets (F6) ; nombre de tickets en attente dans le TAB |
+| `origine_tickets_admin` | superadmins | Statistiques, réattribution et suppression des tickets |
+
+## Cycle jour/nuit
+
+15 minutes de jour (6 h → 18 h RP) puis 45 minutes de nuit (18 h → 6 h), aube et crépuscule de 2 minutes
+compris. Le HUD affiche « Nuit · 23:40 » sous les Covan. Message RP à l'aube et au crépuscule ; une nuit sur 4
+est une nuit de pleine lune (annoncée, sans effet pour l'instant). La position dans le cycle est gardée dans
+`data/origine/cycle.json` : après un redémarrage, le cycle reprend là où il en était.
+L'éclairage de la map change par paliers (chaque palier recharge l'éclairage chez les clients).
+Avec StormFox 2, le cycle lui donne l'heure RP et ne fait plus son propre rendu.
+
+Pour les bonus et malus à venir (vampires, lycans…) :
+
+```lua
+ORIGINE.EstNuit()  ORIGINE.HeureRP() --> 23, 40  ORIGINE.EstPleineLune()  ORIGINE.PhaseCycle()
+hook.Add("OrigineDebutJour", …)  hook.Add("OrigineDebutNuit", …)  hook.Add("OrigineChangementPhase", …)
+```
+
+## Banque
+
+Le staff (`origine_banque_admin`) place le guichet depuis le menu des entités (catégorie Origine) ; il reste au
+même endroit après un redémarrage (`data/origine/guichets/<map>.json`). E sur le guichet :
+
+- **Mon compte** : bourse (Covan portés) et compte, déposer, retirer, virement vers le personnage d'un autre
+  joueur (par son nom, connecté ou non ; refusé vers ses propres personnages), relevé des 50 dernières opérations.
+- **Prêt** : accepter / refuser une proposition, rembourser en une ou plusieurs fois. Les banquiers proposent
+  un prêt (montant, taux, échéance en jours réels, jamais plus que le trésor) et voient les débiteurs en retard.
+- **Trésor** (jobs de la banque) : solde, mouvements (qui, combien, pourquoi), retrait vers la bourse (dirigeant).
+- **Administration** (`origine_banque_admin`) : recherche d'un joueur (connecté ou non), ses 5 slots
+  (bourse, compte, prêt, total), ajout / retrait de Covan avec raison obligatoire, correction du trésor,
+  annulation d'un prêt. Tout est écrit dans l'historique de `!origine`.
+
+Chaque opération (bourse, compte, relevé, trésor) est écrite en une seule transaction SQL. Un CK ou un RPK
+remet le compte à 0 et annule le prêt ; la copie d'avant le CK inclut le compte et le prêt.
+
+## Mise à terre et captures
+
+Un coup d'arme (joueur ou PNJ) qui laisse 15 PV ou moins met à terre ; un coup qui amène à 0 PV tue. Chutes,
+feu, noyade suivent les règles normales. À terre : ni mouvement, ni arme, ni inventaire, ni sélecteur ;
+voix et chat possibles ; écran assombri, « Vous êtes à terre » et 3 minutes avant la mort (le sac de mort
+tombe). Les autres voient « À terre » au-dessus de lui ; la régénération de race est en pause.
+
+E sur lui : **Relever** (guérisseur : 5 s, 25 PV ; n'importe qui s'il n'y a aucun guérisseur connecté : 10 s,
+20 PV) ou **Ligoter** (3 s). Ligoté : ni arme, ni inventaire, ni course ; son ravisseur peut l'**Escorter**
+(il le suit) puis le **Lâcher** ; n'importe qui le **Délie** en 5 s. La distance est vérifiée pendant toute
+l'action. Impossible de changer de personnage ou d'utiliser `kill` à terre ou ligoté ; se déconnecter compte
+comme une mort. L'arrestation DarkRP délie le captif.
+
+## Missives
+
+Parchemin vierge : F4 (onglet Entités, catégorie Origine) ou `/parchemin`, rangeable dans l'inventaire.
+Écrire consomme un parchemin (E sur un parchemin posé, ou « Écrire » du coffret s'il y en a un dans
+l'inventaire). Destinataires : un ou plusieurs personnages (connectés ou non), sa faction, d'autres factions
+(copie dans le registre de la sienne), ou tout le serveur. Signature automatique, 1 000 caractères.
+
+`!missives` : coffret à trois onglets (Personnelles, Faction, Général) ; lire, répondre, sortir en papier
+(entité que tout le monde peut lire, ranger, voler ou détruire), supprimer. Le registre d'une faction n'est
+lisible que par ses membres actuels. 30 s entre deux missives, 10 min entre deux missives générales,
+100 missives personnelles gardées. Un CK ou un RPK vide le coffret du personnage.
+
+## Tickets
+
+F6 (ou `!tickets`) : le joueur ouvre un ticket (catégorie, description, joueurs concernés ; personnage,
+job, position et heure joints), suit la discussion, voit le statut et le staff qui s'en occupe, ferme
+son ticket avec une note de 1 à 5. Un ticket ouvert à la fois, 2 minutes entre deux tickets.
+`!report message` ouvre un ticket rapide. Les tickets sont liés au compte.
+
+Staff (`origine_tickets_staff`) : file triée par ancienneté (filtres catégorie, statut, staff), historique
+(joueur, staff, catégorie, date), prendre en charge, répondre, note interne, attendre le joueur, priorité,
+transférer, fermer avec une note de résolution, rouvrir, actions ULX rapides (aller vers, ramener, renvoyer,
+observer, geler) et « Ouvrir dans !origine ». Son et notification à chaque nouveau ticket ; le nombre de
+tickets en attente est affiché dans F6 et dans l'en-tête du TAB. Statistiques (`origine_tickets_admin`) :
+tickets traités, temps moyen avant la première réponse, note moyenne par staff.
+Les tickets ouverts restent après un redémarrage ; les fermés sont gardés 90 jours. Option Discord :
+`Discord.Webhook` dans la config (envoyé quand aucun staff n'est connecté).
+
 ## Pour les autres addons
 
 Seuls les points de reroll sont liés au compte ; tout le reste appartient au personnage.
@@ -181,6 +296,12 @@ hook.Add("origine_NettoyageMonde", "mon_addon", function(ply) end)
 hook.Add("origine_ArmesExclues", "mon_addon", function(ply, set) end)
 hook.Add("origine_ChatMessage", "mon_addon", function(message) end)  -- client, chaque message du chat
 ORIGINE.Logs.Ajouter("categorie", acteur, cible, "texte", { details })  -- serveur, ajouter un log
+hook.Add("origine_PeutChangerPerso", "mon_addon", function(ply) return false, "raison" end)  -- bloquer !perso
+hook.Add("origine_RegenBloquee", "mon_addon", function(ply) return true end)               -- suspendre la régénération
+ORIGINE.DB.Transaction({ { sql, params }, … }, function(ok) end)  -- plusieurs écritures, tout ou rien
+ORIGINE.Staff.AjouterExtensionCK({ nom, lire, vider, restaurer })  -- données remises à zéro au CK / RPK
+ORIGINE.Inv.Autoriser(classe)  ORIGINE.Inv.AjouterActionObjet(classe, id, nom, icone, fn)
+ORIGINE.EstATerre(ply)  ORIGINE.EstLigote(ply)  ORIGINE.EstImmobilise(ply)
 ```
 
 À prévoir sur ce serveur : les données wOS (compétences, niveaux ALCS) et l'inventaire wOS sont
@@ -199,6 +320,9 @@ Si la connexion MySQL échoue, le système repasse sur SQLite.
 | `origine_historique` | Actions staff, tirages de race et rerolls |
 | `origine_copies` | Copie complète d'un personnage avant chaque CK ou RPK |
 | `origine_logs` | Logs du serveur (dégâts, chat, connexions…) |
+| `origine_banque_*` | Comptes, opérations (relevé), trésor, mouvements du trésor, prêts |
+| `origine_missives*` | Missives, coffrets personnels, registres de faction, missives masquées |
+| `origine_tickets`, `origine_tickets_messages` | Tickets et leurs fils de discussion |
 
 Sauvegarde au changement de personnage, à la déconnexion, toutes les 5 minutes, à l'arrêt du serveur
 et à chaque modification d'inventaire (écritures regroupées). Un personnage n'est réécrit que s'il a
@@ -244,7 +368,20 @@ Mise en place : les Covan qu'un joueur avait déjà dans DarkRP sont transféré
 - **Infos au-dessus des joueurs** : réservées aux superadmins (`InfosTete.SuperadminSeulement` dans la
   config d'origine_hud ; `false` pour les montrer à tout le monde).
 
+- **Parchemin au F4** : le menu F4 est désactivé sur ce serveur (`C.DesactiverF4`) ; le parchemin est donc
+  aussi en vente avec `/parchemin`.
+- **Guérisseurs** : aucun job guérisseur n'existe encore ; la liste `Relever.Guerisseurs` est vide, donc tout le
+  monde relève en 10 s. Ajoutez la commande du job quand il existera.
+- **Arrestation d'un captif** : `GAMEMODE.CivilProtection` est vide (police DarkRP coupée), il n'y a donc pas
+  de bâton d'arrestation. Tout addon qui appelle `ply:arrest()` fonctionne sur un captif (il est délié).
+- **Réponse à une missive** : envoyée aux mêmes destinataires ; elle consomme un parchemin de l'inventaire.
+- **Missive supprimée ou sortie en papier depuis Faction / Général** : masquée pour ce personnage seulement.
+- **Prêt** : les intérêts (taux) s'appliquent une fois sur le montant ; le remboursement se fait depuis le compte.
+- **Frais** : prélevés sur le montant (un retrait de 1 000 à 2 % donne 980 dans la bourse).
+
 ## À définir plus tard (prévu dans le code, valeurs neutres)
+
+- Bonus et malus du jour, de la nuit et de la pleine lune (les fonctions et hooks du cycle sont prêts).
 
 - Valeurs chiffrées de chaque race (seule « Être Vivant » a sa vitesse ×0,9) : `C.Races[].Mod`.
 - Effets du Sang Arcanique.
@@ -269,7 +406,12 @@ python3 tests/verifier_globales.py    # aucune variable globale inconnue (fautes
 python3 tests/tests_logique.py        # noms, Covan, taux, tirage, piles d'inventaire
 python3 tests/tester_jobs.py          # jobs.lua : commandes uniques, catégories, armes
 python3 tests/tester_selecteur.py     # sélecteur : cooldowns, Sacoche en tête, fastswitch, fermeture
+python3 tests/tester_cycle_banque.py  # cycle 15/45 min, heure RP, reprise ; frais, montants, virements
 ```
+
+À vérifier en jeu (points que les tests hors jeu ne couvrent pas) : la séquence au sol
+(`Sequence = "zombie_slump_idle_02"`) sur vos playermodels, l'API StormFox 2 (`StormFox2.Time.Set`),
+et l'envoi du webhook Discord depuis votre hébergeur.
 
 En jeu, les tests de validation du cahier des charges :
 

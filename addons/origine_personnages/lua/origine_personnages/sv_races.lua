@@ -163,7 +163,9 @@ end)
 timer.Create("origine_regeneration", 1, 0, function()
 	local maintenant = CurTime()
 	for _, ply in ipairs(player.GetAll()) do
-		local m = ply:Alive() and not ORIGINE.EnMenu(ply) and ORIGINE.ModsJoueur(ply)
+		-- origine_RegenBloquee : true pour suspendre (joueur à terre…)
+		local m = ply:Alive() and not ORIGINE.EnMenu(ply) and hook.Run("origine_RegenBloquee", ply) ~= true
+			and ORIGINE.ModsJoueur(ply)
 		local r = m and m.Regen
 		if r and (r.PV or 0) > 0 and ply:Health() < ply:GetMaxHealth() then
 			local horsCombat = maintenant - (ply.OrigineDernierCoup or 0) >= (r.Delai or 10)

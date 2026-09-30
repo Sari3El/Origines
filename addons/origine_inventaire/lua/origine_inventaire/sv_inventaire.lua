@@ -136,6 +136,8 @@ function I.FaireApparaitre(objet, pos, ang, proprietaire)
 	else
 		ent = ents.Create(objet.classe)
 		if IsValid(ent) and objet.modele and objet.modele ~= "" then ent:SetModel(objet.modele) end
+		-- Données propres à l'objet rendues à l'entité : ENT:OrigineDepuisObjet(donnees)
+		if IsValid(ent) and objet.donnees and ent.OrigineDepuisObjet then ent:OrigineDepuisObjet(objet.donnees) end
 	end
 	if not IsValid(ent) then return nil end
 	ent:SetPos(pos)
@@ -171,12 +173,17 @@ local function objetDepuisEntite(ent)
 	if ent:IsWeapon() then
 		return { classe = classe, arme = classe, modele = ent:GetModel() }
 	end
-	return { classe = classe, modele = ent:GetModel() }
+	-- Entité avec des données à garder (missive…) : ENT:OrigineVersObjet() renvoie une table
+	local donnees = ent.OrigineVersObjet and ent:OrigineVersObjet() or nil
+	return { classe = classe, modele = ent:GetModel(), donnees = donnees }
 end
+
+-- À terre ou ligoté (origine_mise_a_terre) : pas d'inventaire
+local function immobilise(ply) return ORIGINE.EstImmobilise ~= nil and ORIGINE.EstImmobilise(ply) end
 
 function I.Ranger(ply, ent)
 	local cases = I.DuJoueur(ply)
-	if not cases or not ply:Alive() then return end
+	if not cases or not ply:Alive() or immobilise(ply) then return end
 	if not IsValid(ent) or ent:IsPlayer() or ent:IsNPC() or ent.OrigineRamasse or ent:CreatedByMap() then return end
 	if ent:IsWeapon() and IsValid(ent:GetOwner()) then return end
 	if I.Interdites[ent:GetClass()] then
@@ -214,7 +221,7 @@ end
 ---------------------------------------------------------------------------
 function I.Action(ply, action, index)
 	local cases = I.DuJoueur(ply)
-	if not cases or not ply:Alive() then return end
+	if not cases or not ply:Alive() or immobilise(ply) then return end
 	local c = cases[index]
 	if not c then return end
 
@@ -240,6 +247,9 @@ function I.Action(ply, action, index)
 	elseif action == "detruire" then
 		hook.Run("origine_InvAction", ply, "detruire", I.RetirerDe(cases, index))
 	else
+		-- Action ajoutée par un autre addon (Lire une missive…)
+		local a = I.ActionsObjet[c.classe] and I.ActionsObjet[c.classe][action]
+		if a and a.fn then a.fn(ply, c, index) end
 		return
 	end
 	I.Modifie(ply)
