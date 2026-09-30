@@ -19,7 +19,6 @@ ORIGINE.HUD = ORIGINE.HUD or {}
 local HUD = ORIGINE.HUD
 
 UI.DefinirPolice("hud_nom", 21, 700, true)
-UI.DefinirPolice("hud_faction", 13, 700, true)
 UI.DefinirPolice("hud_texte", 15, 600)
 UI.DefinirPolice("hud_chiffres", 13, 700)
 UI.DefinirPolice("hud_covan", 19, 700, true)
@@ -104,7 +103,7 @@ local function construireGeometrie(avecFaim)
 	G.avecFaim = avecFaim
 	G.w = S(CH.Largeur)
 	G.pad = S(12)
-	G.banniere = S(20)                 -- bandeau de faction en haut
+	G.banniere = S(4)                  -- plus de bandeau : simple marge en haut
 	G.rayon = S(32)                    -- portrait rond
 	G.cx, G.cy = G.pad + S(4) + G.rayon, G.banniere + S(10) + G.rayon
 	G.tx = G.cx + G.rayon + S(16)      -- début de la colonne de droite
@@ -117,7 +116,7 @@ local function construireGeometrie(avecFaim)
 
 	-- Jauges sur une seule ligne : PV | armure | faim
 	local n = avecFaim and 3 or 2
-	local ecart = S(12)
+	local ecart = S(8)
 	local dispo_ = G.w - G.tx - G.pad
 	local lj = math.floor((dispo_ - (n - 1) * ecart) / n)
 	G.jauges = {}
@@ -133,8 +132,6 @@ local function construireGeometrie(avecFaim)
 		UI.PolyLosange(S(5), S(5), S(5)), UI.PolyLosange(G.w - S(5), S(5), S(5)),
 		UI.PolyLosange(S(5), G.h - S(5), S(5)), UI.PolyLosange(G.w - S(5), G.h - S(5), S(5)),
 	}
-	G.losHaut = UI.PolyLosange(G.w / 2, G.banniere, S(6))
-	G.losHautInt = UI.PolyLosange(G.w / 2, G.banniere, S(3))
 
 	-- Portrait : anneaux
 	G.anneauExt = UI.PolyCercle(G.cx, G.cy, G.rayon + S(5), 40)
@@ -376,11 +373,10 @@ local function dessinerCadre(w, h)
 	surface.SetDrawColor(0, 0, 0, 22)
 	for yy = S(6), h - S(6), S(5) do surface.DrawRect(S(4), yy, w - S(8), 1) end
 
-	-- Bandeau de faction
+	-- Fin liseré de faction en haut (remplace l'ancien bandeau)
 	surface.SetMaterial(MAT_D)
-	surface.SetDrawColor(cFaction.r, cFaction.g, cFaction.b, 170)
-	surface.DrawTexturedRect(S(3), S(3), w - S(6), G.banniere - S(3))
-	UI.Rect(S(3), G.banniere, w - S(6), 1, cFaction)
+	surface.SetDrawColor(cFaction.r, cFaction.g, cFaction.b, 200)
+	surface.DrawTexturedRect(S(3), S(3), w - S(6), S(2))
 
 	-- Bordures : extérieure sombre, filet de faction, filet doré intérieur
 	UI.Contour(0, 0, w, h, COL.Bordure, S(2))
@@ -395,24 +391,36 @@ local function dessinerCadre(w, h)
 	equerre(S(1), h - S(1) - G.epaisseur, 1, -1)
 	equerre(w - S(1) - G.epaisseur, h - S(1) - G.epaisseur, -1, -1)
 	for _, l in ipairs(G.losCoins) do UI.DessinerPoly(l, cFaction) end
-	UI.DessinerPoly(G.losHaut, COL.Or)
-	UI.DessinerPoly(G.losHautInt, cFaction)
 end
 
 ---------------------------------------------------------------------------
 -- Bloc complet (coordonnées locales, réduites par la matrice si besoin)
 ---------------------------------------------------------------------------
+-- Nom coupé avec « … » s'il touche les Covan (résultat gardé tant que nom et place ne changent pas)
+local cacheNom = {}
+local function nomAjuste(nom, largeur)
+	if cacheNom.nom == nom and cacheNom.largeur == largeur then return cacheNom.texte end
+	surface.SetFont(UI.Police("hud_nom"))
+	local texte = nom
+	if surface.GetTextSize(nom) > largeur then
+		local n = utf8.len(nom) or #nom
+		repeat
+			n = n - 1
+			local fin = utf8.offset(nom, n + 1)
+			texte = (fin and string.sub(nom, 1, fin - 1) or nom) .. "…"
+		until n <= 1 or surface.GetTextSize(texte) <= largeur
+	end
+	cacheNom.nom, cacheNom.largeur, cacheNom.texte = nom, largeur, texte
+	return texte
+end
+
 local function dessinerBloc(ply)
 	local w, h, S = G.w, G.h, UI.S
 	local race = ORIGINE.RaceJoueur(ply)
 	local colRace = ORIGINE.CouleurRace(race)
-	local metier, categorie = infosJob(ply)
+	local metier = infosJob(ply)
 
 	dessinerCadre(w, h)
-
-	-- Bandeau : nom de la faction
-	local faction = categorie and string.upper(categorie) or "SANS ALLÉGEANCE"
-	UI.TexteOmbre(faction, "hud_faction", S(12), G.banniere / 2 + S(1), COL.Texte, TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER)
 
 	-- Anneaux du portrait (le portrait lui-même est dessiné ensuite, masqué en rond)
 	UI.DessinerPoly(G.anneauExt, COL.Or)
@@ -451,7 +459,7 @@ local function dessinerBloc(ply)
 
 	-- Identité : nom, puis race · métier
 	local tx = G.tx
-	UI.TexteOmbre(ORIGINE.NomComplet(ply), "hud_nom", tx, G.nomY, COL.Texte)
+	UI.TexteOmbre(nomAjuste(ORIGINE.NomComplet(ply), px - G.pieceR - tx - S(10)), "hud_nom", tx, G.nomY, COL.Texte)
 	surface.SetMaterial(MAT_D)
 	surface.SetDrawColor(cFaction.r, cFaction.g, cFaction.b, 150)
 	surface.DrawTexturedRect(tx, G.infoY - S(3), px - G.pieceR - tx - S(10), 1)

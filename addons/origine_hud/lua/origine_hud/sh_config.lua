@@ -10,7 +10,7 @@ ORIGINE.ConfigHUD = {
 	-- Largeur du bloc à 1080p (adaptée automatiquement de 720p à 4K).
 	-- Bloc allongé et bas : PV, armure et faim sont côte à côte sur une seule ligne
 	-- (la faim est retirée si le module faim de DarkRP est désactivé ou en mode Sans faim).
-	Largeur = 580,
+	Largeur = 440,
 
 	-- S'il n'y a pas assez de place sous la chatbox, le HUD est réduit
 	-- jusqu'à cette échelle minimum ; en dessous, il se place à droite de la chatbox.

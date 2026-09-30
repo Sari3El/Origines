@@ -6,7 +6,7 @@ Cinq addons Garry's Mod (DarkRP + ULX/ULib) réalisés d'après le cahier des ch
 | Dossier | Contenu | Dépend de |
 |---|---|---|
 | `origine_personnages` | Slots, menu et création de personnage, races, rerolls, SWEPs de race, sauvegarde SQL, intégration DarkRP | DarkRP, ULX |
-| `origine_hud` | HUD allongé sous la chatbox (PV, armure et faim sur une ligne), compteur de munitions, infos au-dessus de la tête (superadmins) | origine_personnages |
+| `origine_hud` | HUD compact sous la chatbox (PV, armure et faim sur une ligne), compteur de munitions, infos au-dessus de la tête (superadmins) | origine_personnages |
 | `origine_inventaire` | SWEP Sacoche, inventaire par personnage, sac de mort, liste des entités autorisées | origine_personnages |
 | `origine_staff` | Menu `!origine`, actions staff, historique, copies avant CK et RPK, logs du serveur | origine_personnages, origine_inventaire |
 | `origine_chat` | Chatbox à la charte : un seul chat général, heure des messages, historique aux flèches, complétion | origine_personnages |
