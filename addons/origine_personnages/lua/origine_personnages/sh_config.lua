@@ -111,7 +111,7 @@ C.DesactiverPolice = true
 
 -- Commandes DarkRP retirées quand DesactiverPolice = true
 C.CommandesPolice = {
-	"wanted", "unwanted", "warrant", "unwarrant", "cr", "lockdown", "unlockdown",
+	"wanted", "unwanted", "warrant", "unwarrant", "cr", "911", "112", "999", "lockdown", "unlockdown",
 	"jailpos", "setjailpos", "addjailpos", "givelicense", "requestlicense",
 }
 

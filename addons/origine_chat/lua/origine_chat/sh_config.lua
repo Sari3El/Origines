@@ -36,9 +36,9 @@ ORIGINE.ConfigChat = {
 		GroupesExemptes = { "superadmin", "admin" },
 	},
 
-	-- Commandes proposées quand on tape « / » ou « ! »
-	-- (les commandes DarkRP connues sont ajoutées automatiquement)
+	-- Commandes proposées quand on tape « / » ou « ! » (seulement celles-ci)
 	Commandes = {
+		{ "/roll", "Lancer des dés : /roll (1d100) ou /roll 3d20" },
 		{ "//", "Parler en OOC (hors RP)" },
 		{ "/ooc", "Parler en OOC (hors RP)" },
 		{ "/me", "Décrire une action de votre personnage" },
@@ -48,5 +48,13 @@ ORIGINE.ConfigChat = {
 		{ "/advert", "Faire une annonce" },
 		{ "!perso", "Changer de personnage" },
 		{ "!origine", "Menu staff" },
+	},
+
+	-- Dés : /roll = 1d100, /roll 3d20 = 3 dés à 20 faces
+	Des = {
+		MaxDes = 25,       -- dés lancés au maximum en une fois
+		MaxFaces = 1000,   -- faces maximum par dé
+		Portee = 600,      -- distance à laquelle les joueurs voient le résultat (0 = tout le serveur)
+		Couleur = Color(201, 164, 92),
 	},
 }

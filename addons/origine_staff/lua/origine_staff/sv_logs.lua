@@ -280,6 +280,10 @@ local function canal(texte, equipe)
 	return "local"
 end
 
+hook.Add("origine_LancerDes", "origine_logs", function(ply, nombre, faces, resultats, total)
+	L.Ajouter("chat", ply, nil, "[dés] " .. nombre .. "d" .. faces .. " = " .. total, { resultats = resultats })
+end)
+
 hook.Add("PlayerSay", "origine_logs", function(ply, texte, equipe)
 	local c = canal(texte, equipe)
 	L.Ajouter("chat", ply, nil, "[" .. c .. "] " .. texte, { canal = c, menu = ORIGINE.EnMenu(ply) or nil })

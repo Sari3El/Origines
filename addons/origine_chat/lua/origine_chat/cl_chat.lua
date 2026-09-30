@@ -288,14 +288,6 @@ local function listeCommandes()
 		commandes[#commandes + 1] = { cmd, desc or "" }
 	end
 	for _, c in ipairs(CC.Commandes) do ajouter(c[1], c[2]) end
-	if DarkRP and DarkRP.getChatCommands then
-		local ok, liste = pcall(DarkRP.getChatCommands)
-		if ok and istable(liste) then
-			for nom, c in pairs(liste) do
-				if isstring(nom) then ajouter("/" .. nom, istable(c) and isstring(c.description) and c.description or "") end
-			end
-		end
-	end
 	table.sort(commandes, function(a, b) return a[1] < b[1] end)
 	return commandes
 end
@@ -744,3 +736,8 @@ end
 hook.Add("InitPostEntity", "origine_chat", demarrer)
 hook.Add("DarkRPFinishedLoading", "origine_chat", envelopperNonParse)
 if IsValid(LocalPlayer()) then demarrer() end
+
+-- Résultat d'un lancer de dés (/roll)
+net.Receive("origine_chat_des", function()
+	chat.AddText(CC.Des.Couleur, "[Dés] ", COL.Texte, net.ReadString())
+end)
