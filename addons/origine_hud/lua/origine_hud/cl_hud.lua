@@ -400,16 +400,13 @@ local function dessinerBloc(ply)
 	local w, h, S = G.w, G.h, UI.S
 	local race = ORIGINE.RaceJoueur(ply)
 	local colRace = ORIGINE.CouleurRace(race)
-	local metier, categorie, grade = infosJob(ply)
+	local metier, categorie = infosJob(ply)
 
 	dessinerCadre(w, h)
 
-	-- Bandeau : faction à gauche, grade à droite
+	-- Bandeau : nom de la faction
 	local faction = categorie and string.upper(categorie) or "SANS ALLÉGEANCE"
 	UI.TexteOmbre(faction, "hud_faction", S(12), G.banniere / 2 + S(1), COL.Texte, TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER)
-	if grade then
-		UI.TexteOmbre("GRADE " .. grade, "hud_faction", w - S(12), G.banniere / 2 + S(1), COL.Texte, TEXT_ALIGN_RIGHT, TEXT_ALIGN_CENTER)
-	end
 
 	-- Anneaux du portrait (le portrait lui-même est dessiné ensuite, masqué en rond)
 	UI.DessinerPoly(G.anneauExt, COL.Or)
