@@ -124,13 +124,17 @@ recevoirStaff("origine_staff_recherche", function(ply)
 	local texte = string.Trim(net.ReadString())
 	local sid = versSid(texte)
 	local cle = "%" .. ORIGINE.Normaliser(texte):gsub("[%%_]", "") .. "%"
+	local cleSteam = "%" .. string.lower(texte):gsub("[%%_]", "") .. "%"
+	local base = "SELECT p.steamid64, p.slot, p.prenom, p.nom, p.race, c.nom_steam FROM origine_personnages p " ..
+		"LEFT JOIN origine_comptes c ON c.steamid64 = p.steamid64 "
 	local requete, params
 	if sid then
-		requete, params = "SELECT steamid64, slot, prenom, nom, race FROM origine_personnages WHERE steamid64 = ?", { sid }
+		requete, params = base .. "WHERE p.steamid64 = ?", { sid }
 	elseif texte == "" then
-		requete, params = "SELECT steamid64, slot, prenom, nom, race FROM origine_personnages ORDER BY derniere_connexion DESC LIMIT " .. CS.LimiteRecherche, {}
+		requete, params = base .. "ORDER BY p.derniere_connexion DESC LIMIT " .. CS.LimiteRecherche, {}
 	else
-		requete, params = "SELECT steamid64, slot, prenom, nom, race FROM origine_personnages WHERE nom_cle LIKE ? LIMIT " .. CS.LimiteRecherche, { cle }
+		-- Nom du personnage ou nom Steam
+		requete, params = base .. "WHERE p.nom_cle LIKE ? OR LOWER(c.nom_steam) LIKE ? LIMIT " .. CS.LimiteRecherche, { cle, cleSteam }
 	end
 
 	DB.Requete(requete, params, function(lignes)
@@ -138,9 +142,11 @@ recevoirStaff("origine_staff_recherche", function(ply)
 		local resultats, vus = {}, {}
 		for _, l in ipairs(lignes or {}) do
 			local s = l.steamid64
+			local connecte = ORIGINE.JoueurParSid(s)
 			resultats[#resultats + 1] = {
 				sid = s, slot = tonumber(l.slot), nom = l.prenom .. " " .. l.nom, race = l.race,
-				en_ligne = ORIGINE.JoueurParSid(s) ~= nil,
+				en_ligne = connecte ~= nil,
+				nom_steam = connecte and ORIGINE.NomSteam(connecte) or l.nom_steam,
 			}
 			vus[s] = true
 		end
@@ -148,8 +154,9 @@ recevoirStaff("origine_staff_recherche", function(ply)
 		local bas = string.lower(texte)
 		for _, p in ipairs(player.GetAll()) do
 			local s = p:SteamID64()
-			if not vus[s] and (sid == s or (bas ~= "" and string.find(string.lower(p:Nick()), bas, 1, true)) or texte == "") then
-				resultats[#resultats + 1] = { sid = s, nom = p:Nick() .. " (Steam)", en_ligne = true }
+			local nomSteam = ORIGINE.NomSteam(p)
+			if not vus[s] and (sid == s or (bas ~= "" and string.find(string.lower(nomSteam), bas, 1, true)) or texte == "") then
+				resultats[#resultats + 1] = { sid = s, nom_steam = nomSteam, en_ligne = true }
 			end
 		end
 		net.Start("origine_staff_resultats")
@@ -168,7 +175,7 @@ function S.EnvoyerFiche(staff, sid)
 			sid = sid,
 			en_ligne = cible ~= nil,
 			slot_actuel = cible and cible.OrigineSlot or nil,
-			nom_steam = cible and cible:Nick() or (compte and compte.nom_steam) or "?",
+			nom_steam = cible and ORIGINE.NomSteam(cible) or (compte and compte.nom_steam) or "?",
 			groupe = S.GroupeDe(sid),
 			compte = compte and {
 				rerolls = compte.rerolls, event_debloque = compte.event_debloque,

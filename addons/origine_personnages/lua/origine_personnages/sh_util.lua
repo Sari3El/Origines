@@ -366,6 +366,10 @@ function ORIGINE.RaceJoueur(ply)
 	local id = ply:GetNW2String("origine_race", "")
 	return id ~= "" and id or nil
 end
+-- Nom Steam (avec DarkRP, Nick() renvoie le nom RP)
+function ORIGINE.NomSteam(ply)
+	return ply.SteamName and ply:SteamName() or ply:Nick()
+end
 function ORIGINE.EnMenu(ply) return ply:GetNW2Bool("origine_enmenu", false) end
 
 -- Mode « Sans faim » (activé depuis !origine > Serveur) : la faim ne baisse plus

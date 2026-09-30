@@ -33,6 +33,9 @@ ORIGINE.Tab.Config = {
 	-- Mise à jour de la liste tant que le TAB est ouvert (secondes)
 	Rafraichissement = 2,
 
+	-- Groupe unique vu par les joueurs sans origine_tab_staff (ils ne voient que le nom Steam et le SteamID)
+	GroupeJoueurs = "Joueurs connectés",
+
 	-- Nom du groupe des joueurs qui choisissent leur personnage (tout en bas)
 	GroupeSelection = "En sélection de personnage",
 

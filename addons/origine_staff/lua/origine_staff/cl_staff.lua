@@ -209,23 +209,45 @@ function S.AfficherResultats(resultats)
 		l:SetText("Aucun résultat.")
 		return
 	end
+	-- Regroupement par compte (SteamID) : une carte par joueur, ses personnages dessous
+	local comptes, parSid = {}, {}
 	for _, r in ipairs(resultats) do
+		local c = parSid[r.sid]
+		if not c then
+			c = { sid = r.sid, en_ligne = r.en_ligne, nom_steam = r.nom_steam, persos = {} }
+			parSid[r.sid] = c
+			comptes[#comptes + 1] = c
+		end
+		c.nom_steam = c.nom_steam or r.nom_steam
+		if r.slot then c.persos[#c.persos + 1] = r end
+	end
+	for _, c in ipairs(comptes) do
+		table.sort(c.persos, function(a, b) return a.slot < b.slot end)
+		local ligneH = UI.S(20)
 		local b = S.Resultats:Add("DButton")
 		b:Dock(TOP)
-		b:SetTall(UI.S(46))
+		b:SetTall(UI.S(46) + math.max(1, #c.persos) * ligneH + UI.S(4))
 		b:DockMargin(0, 0, 0, UI.S(4))
 		b:SetText("")
 		b.Paint = function(s, bw, bh)
 			UI.Rect(0, 0, bw, bh, s:IsHovered() and COL.Survol or COL.FondClair)
 			UI.Contour(0, 0, bw, bh, COL.Bordure, 1)
-			UI.Texte(r.nom, "texte_gras", UI.S(8), UI.S(4), r.race and ORIGINE.CouleurRace(r.race) or COL.Texte)
-			local ligne = (r.slot and ("Slot " .. r.slot .. " · ") or "") .. r.sid
-			UI.Texte(ligne, "petit", UI.S(8), UI.S(26), COL.TexteSombre)
-			if r.en_ligne then UI.Texte("en ligne", "petit_gras", bw - UI.S(8), UI.S(4), COL.Succes, TEXT_ALIGN_RIGHT) end
+			UI.Texte(c.nom_steam or "Nom Steam inconnu", "texte_gras", UI.S(8), UI.S(4), COL.Texte)
+			if c.en_ligne then UI.Texte("en ligne", "petit_gras", bw - UI.S(8), UI.S(6), COL.Succes, TEXT_ALIGN_RIGHT) end
+			UI.Texte(c.sid, "petit", UI.S(8), UI.S(24), COL.TexteSombre)
+			local y = UI.S(46)
+			if #c.persos == 0 then
+				UI.Texte("Aucun personnage", "petit", UI.S(20), y, COL.TexteSombre)
+			end
+			for _, r in ipairs(c.persos) do
+				UI.Texte("Slot " .. r.slot, "petit", UI.S(20), y, COL.TexteSombre)
+				UI.Texte(r.nom, "petit_gras", UI.S(80), y, r.race and ORIGINE.CouleurRace(r.race) or COL.Texte)
+				y = y + ligneH
+			end
 		end
 		b.DoClick = function()
 			net.Start("origine_staff_fiche")
-				net.WriteString(r.sid)
+				net.WriteString(c.sid)
 			net.SendToServer()
 		end
 	end

@@ -237,7 +237,7 @@ function ORIGINE.ChargerDonneesJoueur(ply, callback)
 	ORIGINE.LireCompte(sid, function(compte)
 		if not IsValid(ply) then return end
 		local function suite(c)
-			c.nom_steam = ply:Nick()
+			c.nom_steam = ORIGINE.NomSteam(ply)
 			ply.OrigineCompte = c
 			ORIGINE.LirePersos(sid, function(persos)
 				if not IsValid(ply) then return end

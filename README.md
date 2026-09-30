@@ -6,7 +6,7 @@ Cinq addons Garry's Mod (DarkRP + ULX/ULib) réalisés d'après le cahier des ch
 | Dossier | Contenu | Dépend de |
 |---|---|---|
 | `origine_personnages` | Slots, menu et création de personnage, races, rerolls, SWEPs de race, sauvegarde SQL, intégration DarkRP | DarkRP, ULX |
-| `origine_hud` | HUD sous la chatbox, compteur de munitions, infos au-dessus de la tête | origine_personnages |
+| `origine_hud` | HUD allongé sous la chatbox (PV, armure et faim sur une ligne), compteur de munitions, infos au-dessus de la tête (superadmins) | origine_personnages |
 | `origine_inventaire` | SWEP Sacoche, inventaire par personnage, sac de mort, liste des entités autorisées | origine_personnages |
 | `origine_staff` | Menu `!origine`, actions staff, historique, copies avant CK et RPK, logs du serveur | origine_personnages, origine_inventaire |
 | `origine_chat` | Chatbox à la charte : un seul chat général, heure des messages, historique aux flèches, complétion | origine_personnages |
@@ -237,12 +237,12 @@ Mise en place : les Covan qu'un joueur avait déjà dans DarkRP sont transféré
   Le sac de mort est codé mais désactivé (`Sac.Actif = false` dans la config d'origine_inventaire).
   `dropweapondeath` et `dropmoneyondeath` de DarkRP sont coupés.
 
-- **Menu TAB — qui voit quoi.** Le tableau du cahier réserve au staff le nom du personnage, alors que ses
-  tests et la phrase sur l'immersion disent que les joueurs voient les noms de personnage et que seul le
-  staff voit en plus le nom Steam, le SteamID et le slot. Choix retenu : tout le monde voit le nom du
-  personnage, la race, le métier, le badge Staff/EVENT et le ping ; le staff voit en plus le nom Steam,
-  le SteamID, le slot, les kills/morts, les PV et les Covan (envoyés par le serveur au staff seulement).
-  L'avatar Steam n'est affiché qu'au staff.
+- **Menu TAB — qui voit quoi.** Les joueurs ne voient que le nom Steam, le SteamID, l'avatar et le ping
+  de chacun (une seule liste, sans catégories de job). Le staff (`origine_tab_staff`) voit en plus le nom
+  du personnage, la race, le métier, le badge Staff/EVENT, le slot, les kills/morts, les PV et les Covan,
+  avec la liste rangée par catégorie de job.
+- **Infos au-dessus des joueurs** : réservées aux superadmins (`InfosTete.SuperadminSeulement` dans la
+  config d'origine_hud ; `false` pour les montrer à tout le monde).
 
 ## À définir plus tard (prévu dans le code, valeurs neutres)
 

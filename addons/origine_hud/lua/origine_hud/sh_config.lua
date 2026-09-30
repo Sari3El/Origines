@@ -8,8 +8,9 @@ ORIGINE.ConfigHUD = {
 	Marge = 8,
 
 	-- Largeur du bloc à 1080p (adaptée automatiquement de 720p à 4K).
-	-- La hauteur dépend des jauges affichées (la faim est masquée si le module faim de DarkRP est désactivé).
-	Largeur = 400,
+	-- Bloc allongé et bas : PV, armure et faim sont côte à côte sur une seule ligne
+	-- (la faim est retirée si le module faim de DarkRP est désactivé ou en mode Sans faim).
+	Largeur = 580,
 
 	-- S'il n'y a pas assez de place sous la chatbox, le HUD est réduit
 	-- jusqu'à cette échelle minimum ; en dessous, il se place à droite de la chatbox.
@@ -25,6 +26,9 @@ ORIGINE.ConfigHUD = {
 
 	-- Infos au-dessus de la tête des joueurs
 	InfosTete = {
+		-- true : seuls les superadmins voient les infos au-dessus des joueurs (nom, métier, race).
+		-- false : tout le monde les voit.
+		SuperadminSeulement = true,
 		Distance = 400,           -- distance d'affichage normale
 		DistanceDiscretion = 120, -- races avec « discrétion » : visibles seulement de près
 		Rafraichissement = 0.2,   -- secondes entre deux tests de visibilité

@@ -18,7 +18,7 @@ local CH = ORIGINE.ConfigHUD
 ORIGINE.HUD = ORIGINE.HUD or {}
 local HUD = ORIGINE.HUD
 
-UI.DefinirPolice("hud_nom", 23, 700, true)
+UI.DefinirPolice("hud_nom", 21, 700, true)
 UI.DefinirPolice("hud_faction", 13, 700, true)
 UI.DefinirPolice("hud_texte", 15, 600)
 UI.DefinirPolice("hud_chiffres", 13, 700)
@@ -97,30 +97,37 @@ end
 -- Géométrie (coordonnées locales du bloc, recalculées si l'échelle change)
 ---------------------------------------------------------------------------
 local G = {}
+local piecesPos, pieceExt, pieceInt   -- pièce des Covan (recréée seulement si sa position change)
 
 local function construireGeometrie(avecFaim)
 	local S = UI.S
 	G.avecFaim = avecFaim
 	G.w = S(CH.Largeur)
-	G.pad = S(14)
-	G.banniere = S(24)                 -- bandeau de faction en haut
-	G.rayon = S(44)                    -- portrait rond
-	G.cx, G.cy = G.pad + G.rayon, G.banniere + S(12) + G.rayon
-	G.tx = G.cx + G.rayon + S(18)
-	G.sepY = G.cy + G.rayon + S(12)
-	G.barreY = G.sepY + S(12)
-	G.ligne = S(24)
-	G.bh = S(15)
-	G.nbBarres = avecFaim and 3 or 2
-	G.plaqueY = G.barreY + G.nbBarres * G.ligne + S(4)
-	G.plaqueH = S(30)
-	G.h = G.plaqueY + G.plaqueH + S(10)
+	G.pad = S(12)
+	G.banniere = S(20)                 -- bandeau de faction en haut
+	G.rayon = S(32)                    -- portrait rond
+	G.cx, G.cy = G.pad + S(4) + G.rayon, G.banniere + S(10) + G.rayon
+	G.tx = G.cx + G.rayon + S(16)      -- début de la colonne de droite
+	G.nomY = G.banniere + S(7)         -- nom (à gauche) et Covan (à droite)
+	G.infoY = G.nomY + S(26)           -- race · métier
+	G.barreY = G.infoY + S(24)         -- jauges côte à côte
+	G.bh = S(14)
+	G.h = math.max(G.barreY + G.bh, G.cy + G.rayon + S(5)) + S(10)
 	G.icone = S(15)
-	G.bx = G.pad + G.icone + S(12)
-	G.bw = G.w - G.bx - G.pad
+
+	-- Jauges sur une seule ligne : PV | armure | faim
+	local n = avecFaim and 3 or 2
+	local ecart = S(12)
+	local dispo_ = G.w - G.tx - G.pad
+	local lj = math.floor((dispo_ - (n - 1) * ecart) / n)
+	G.jauges = {}
+	for i = 1, n do
+		local x = G.tx + (i - 1) * (lj + ecart)
+		G.jauges[i] = { icx = x + G.icone / 2, x = x + G.icone + S(6), w = lj - G.icone - S(6) }
+	end
 
 	-- Cadre : coins en équerre et losanges
-	local c, e = S(18), S(3)
+	local c, e = S(14), S(3)
 	G.equerre, G.epaisseur = c, e
 	G.losCoins = {
 		UI.PolyLosange(S(5), S(5), S(5)), UI.PolyLosange(G.w - S(5), S(5), S(5)),
@@ -128,8 +135,6 @@ local function construireGeometrie(avecFaim)
 	}
 	G.losHaut = UI.PolyLosange(G.w / 2, G.banniere, S(6))
 	G.losHautInt = UI.PolyLosange(G.w / 2, G.banniere, S(3))
-	G.losSep = UI.PolyLosange(G.w / 2, G.sepY, S(5))
-	G.losSepInt = UI.PolyLosange(G.w / 2, G.sepY, S(2))
 
 	-- Portrait : anneaux
 	G.anneauExt = UI.PolyCercle(G.cx, G.cy, G.rayon + S(5), 40)
@@ -138,16 +143,15 @@ local function construireGeometrie(avecFaim)
 	-- Gemme de race sur l'anneau (en bas à droite)
 	local a = math.rad(45)
 	G.gx, G.gy = G.cx + math.cos(a) * (G.rayon + S(2)), G.cy + math.sin(a) * (G.rayon + S(2))
-	G.gemmeFond = UI.PolyLosange(G.gx, G.gy, S(10))
-	G.gemme = UI.PolyLosange(G.gx, G.gy, S(7))
+	G.gemmeFond = UI.PolyLosange(G.gx, G.gy, S(9))
+	G.gemme = UI.PolyLosange(G.gx, G.gy, S(6))
 	G.gemmeReflet = UI.PolyLosange(G.gx - S(2), G.gy - S(2), S(2))
 
 	-- Icônes des jauges
 	G.icones = {}
-	local function yLigne(i) return G.barreY + (i - 1) * G.ligne + G.bh / 2 end
-	local ic, cx = G.icone, G.pad + G.icone / 2
+	local ic, y = G.icone, G.barreY + G.bh / 2
 	do -- cœur
-		local y, r = yLigne(1), ic * 0.27
+		local cx, r = G.jauges[1].icx, ic * 0.27
 		G.icones.pv = {
 			UI.PolyCercle(cx - r * 0.95, y - r * 0.55, r, 14),
 			UI.PolyCercle(cx + r * 0.95, y - r * 0.55, r, 14),
@@ -155,7 +159,7 @@ local function construireGeometrie(avecFaim)
 		}
 	end
 	do -- bouclier
-		local y, d = yLigne(2), ic / 2
+		local cx, d = G.jauges[2].icx, ic / 2
 		G.icones.armure = {
 			{ { x = cx - d * 0.85, y = y - d }, { x = cx + d * 0.85, y = y - d }, { x = cx + d * 0.85, y = y },
 			  { x = cx, y = y + d }, { x = cx - d * 0.85, y = y } },
@@ -165,14 +169,16 @@ local function construireGeometrie(avecFaim)
 			  { x = cx, y = y + d * 0.55 }, { x = cx - d * 0.45, y = y - d * 0.05 } },
 		}
 	end
-	G.icones.faim = { x = cx - ic / 2, y = yLigne(3) - ic * 0.32, w = ic, h = ic * 0.64 }
-	do -- pièce
-		local y = G.plaqueY + G.plaqueH / 2
-		G.pieceY = y
-		G.icones.piece = UI.PolyCercle(cx, y, ic * 0.58, 20)
-		G.icones.pieceInt = UI.PolyCercle(cx, y, ic * 0.38, 20)
+	if avecFaim then
+		local cx = G.jauges[3].icx
+		G.icones.faim = { x = cx - ic / 2, y = y - ic * 0.32, w = ic, h = ic * 0.64 }
+	end
+	do -- pièce (Covan, en haut à droite)
+		G.pieceY = G.nomY + S(11)
+		G.pieceR = ic * 0.58
 	end
 	G.echelle = UI.Echelle()
+	piecesPos = nil
 end
 
 ---------------------------------------------------------------------------
@@ -304,8 +310,8 @@ local function couleurAlerte(col, frac, alerte)
 end
 
 -- Jauge : fond creusé, traînée, remplissage, reflet, graduations, valeur au centre
-local function jauge(y, frac, col, id, alerte, texte)
-	local x, w, h, S = G.bx, G.bw, G.bh, UI.S
+local function jauge(j, frac, col, id, alerte, texte)
+	local x, y, w, h, S = j.x, G.barreY, j.w, G.bh, UI.S
 	frac = math.Clamp(frac, 0, 1)
 	local t = traine(id, frac)
 	UI.Rect(x - 1, y - 1, w + 2, h + 2, COL.Bordure)
@@ -418,70 +424,62 @@ local function dessinerBloc(ply)
 	UI.DessinerPoly(G.gemme, colRace)
 	UI.DessinerPoly(G.gemmeReflet, cReflet)
 
-	-- Identité
-	local tx, ty = G.tx, G.cy - G.rayon + S(2)
-	UI.TexteOmbre(ORIGINE.NomComplet(ply), "hud_nom", tx, ty, COL.Texte)
-	surface.SetMaterial(MAT_D)
-	surface.SetDrawColor(cFaction.r, cFaction.g, cFaction.b, 150)
-	surface.DrawTexturedRect(tx, ty + S(30), w - tx - S(14), 1)
-	if race then
-		UI.TexteOmbre(ORIGINE.NomRace(race), "hud_texte", tx, ty + S(38), colRace)
-	end
-	if metier then
-		UI.TexteOmbre(metier, "hud_texte", tx, ty + S(60), cFaction)
-	end
-
-	-- Séparateur orné
-	surface.SetMaterial(MAT_G)
-	surface.SetDrawColor(COL.Or.r, COL.Or.g, COL.Or.b, 140)
-	surface.DrawTexturedRect(S(14), G.sepY, w / 2 - S(20), 1)
-	surface.SetMaterial(MAT_D)
-	surface.DrawTexturedRect(w / 2 + S(6), G.sepY, w / 2 - S(20), 1)
-	UI.DessinerPoly(G.losSep, COL.Or)
-	UI.DessinerPoly(G.losSepInt, cFaction)
-
-	-- Jauges
-	local y = G.barreY
-	local pv, pvmax = math.max(0, ply:Health()), math.max(1, ply:GetMaxHealth())
-	for _, poly in ipairs(G.icones.pv) do UI.DessinerPoly(poly, COL.PV) end
-	jauge(y, pv / pvmax, COL.PV, "pv", true, pv .. " / " .. pvmax)
-
-	y = y + G.ligne
-	local armax = ply:GetMaxArmor()
-	for _, poly in ipairs(G.icones.armure) do UI.DessinerPoly(poly, COL.Armure) end
-	for _, poly in ipairs(G.icones.armureInt) do UI.DessinerPoly(poly, COL.Fond) end
-	jauge(y, armax > 0 and ply:Armor() / armax or 0, COL.Armure, "armure", false, ply:Armor() .. " / " .. armax)
-
-	if G.avecFaim then
-		y = y + G.ligne
-		local faim = ply:getDarkRPVar("Energy") or 0
-		local ic = G.icones.faim
-		draw.RoundedBox(math.floor(ic.h / 2), ic.x, ic.y, ic.w, ic.h, COL.Faim)
-		for i = 1, 3 do UI.Rect(ic.x + ic.w * i / 4, ic.y + ic.h * 0.2, 1, ic.h * 0.45, cMie) end
-		jauge(y, faim / 100, COL.Faim, "faim", true, math.Round(faim) .. " %")
-	end
-
-	-- Plaque des Covan
-	local py = G.plaqueY
-	UI.Rect(S(10), py, w - S(20), G.plaqueH, cFondPlaque)
-	UI.Contour(S(10), py, w - S(20), G.plaqueH, cFactionSombre, 1)
-	surface.SetMaterial(MAT_D)
-	surface.SetDrawColor(COL.Or.r, COL.Or.g, COL.Or.b, 25)
-	surface.DrawTexturedRect(S(10), py, w - S(20), G.plaqueH)
-	UI.DessinerPoly(G.icones.piece, COL.Or)
-	UI.DessinerPoly(G.icones.pieceInt, cPieceInt)
-
+	-- Covan (en haut à droite) : pièce + montant qui défile, variation dessous
 	local argent = ply.getDarkRPVar and ply:getDarkRPVar("money") or 0
 	majCovan(argent)
-	local texte = ORIGINE.FormaterCovan(math.Round(covanAffiche))
-	UI.TexteOmbre(texte, "hud_covan", G.bx, G.pieceY, COL.Or, TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER)
+	local texteCovan = ORIGINE.FormaterCovan(math.Round(covanAffiche))
+	surface.SetFont(UI.Police("hud_covan"))
+	local lc = surface.GetTextSize(texteCovan)
+	local xc = w - G.pad - lc
+	local px = xc - S(8) - G.pieceR
+	if piecesPos ~= px then
+		piecesPos = px
+		pieceExt = UI.PolyCercle(px, G.pieceY, G.pieceR, 20)
+		pieceInt = UI.PolyCercle(px, G.pieceY, G.pieceR * 0.65, 20)
+	end
+	UI.DessinerPoly(pieceExt, COL.Or)
+	UI.DessinerPoly(pieceInt, cPieceInt)
+	UI.TexteOmbre(texteCovan, "hud_covan", xc, G.pieceY, COL.Or, TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER)
 	if CurTime() < finVariation and variation ~= 0 then
 		local reste = (finVariation - CurTime()) / CH.DureeVariationCovan
 		local base = variation > 0 and COL.Succes or COL.Alerte
 		cVariation.r, cVariation.g, cVariation.b = base.r, base.g, base.b
 		cVariation.a = math.Clamp(reste * 2, 0, 1) * 255
 		UI.TexteOmbre((variation > 0 and "+" or "-") .. ORIGINE.FormaterNombre(math.abs(variation)), "hud_variation",
-			w - S(20), G.pieceY - (1 - reste) * S(6), cVariation, TEXT_ALIGN_RIGHT, TEXT_ALIGN_CENTER)
+			w - G.pad, G.infoY + S(9) - (1 - reste) * S(6), cVariation, TEXT_ALIGN_RIGHT, TEXT_ALIGN_CENTER)
+	end
+
+	-- Identité : nom, puis race · métier
+	local tx = G.tx
+	UI.TexteOmbre(ORIGINE.NomComplet(ply), "hud_nom", tx, G.nomY, COL.Texte)
+	surface.SetMaterial(MAT_D)
+	surface.SetDrawColor(cFaction.r, cFaction.g, cFaction.b, 150)
+	surface.DrawTexturedRect(tx, G.infoY - S(3), px - G.pieceR - tx - S(10), 1)
+	local xi = tx
+	if race then
+		xi = xi + UI.TexteOmbre(ORIGINE.NomRace(race), "hud_texte", xi, G.infoY, colRace)
+	end
+	if metier then
+		if race then xi = xi + UI.TexteOmbre("  ·  ", "hud_texte", xi, G.infoY, COL.TexteSombre) end
+		UI.TexteOmbre(metier, "hud_texte", xi, G.infoY, cFaction)
+	end
+
+	-- Jauges côte à côte
+	local pv, pvmax = math.max(0, ply:Health()), math.max(1, ply:GetMaxHealth())
+	for _, poly in ipairs(G.icones.pv) do UI.DessinerPoly(poly, COL.PV) end
+	jauge(G.jauges[1], pv / pvmax, COL.PV, "pv", true, pv .. " / " .. pvmax)
+
+	local armax = ply:GetMaxArmor()
+	for _, poly in ipairs(G.icones.armure) do UI.DessinerPoly(poly, COL.Armure) end
+	for _, poly in ipairs(G.icones.armureInt) do UI.DessinerPoly(poly, COL.Fond) end
+	jauge(G.jauges[2], armax > 0 and ply:Armor() / armax or 0, COL.Armure, "armure", false, ply:Armor() .. " / " .. armax)
+
+	if G.avecFaim then
+		local faim = ply:getDarkRPVar("Energy") or 0
+		local ic = G.icones.faim
+		draw.RoundedBox(math.floor(ic.h / 2), ic.x, ic.y, ic.w, ic.h, COL.Faim)
+		for i = 1, 3 do UI.Rect(ic.x + ic.w * i / 4, ic.y + ic.h * 0.2, 1, ic.h * 0.45, cMie) end
+		jauge(G.jauges[3], faim / 100, COL.Faim, "faim", true, math.Round(faim) .. " %")
 	end
 end
 

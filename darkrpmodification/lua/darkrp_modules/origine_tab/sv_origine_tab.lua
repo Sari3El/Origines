@@ -1,8 +1,9 @@
 --[[-----------------------------------------------------------------------
 	Origine du monde — menu TAB (serveur)
 
-	Le serveur n'envoie les infos staff (nom Steam, SteamID, slot, PV, Covan,
-	kills/morts) qu'aux joueurs ayant la permission origine_tab_staff.
+	Les joueurs ne voient que le nom Steam, le SteamID et le ping.
+	Le serveur n'envoie les infos staff (badge, slot, PV, Covan) qu'aux
+	joueurs ayant la permission origine_tab_staff.
 	Les actions staff passent par les commandes ULX, lancées par le client :
 	ULX vérifie lui-même les permissions et l'immunité côté serveur.
 	Seul le changement de job (sans équivalent ULX) passe par ce fichier.
@@ -71,7 +72,7 @@ local function slotJoue(ply)
 	return 0
 end
 
--- Badge visible par tous : slot Staff ou slot EVENT, rien sur les slots RP
+-- Badge (staff seulement) : slot Staff ou slot EVENT, rien sur les slots RP
 local function badge(ply)
 	local s = slotJoue(ply)
 	if ORIGINE.SLOT_STAFF and s == ORIGINE.SLOT_STAFF then return 2 end
@@ -87,8 +88,8 @@ recevoir("origine_tab_demande", 3, function(ply)
 		net.WriteUInt(#joueurs, 8)
 		for _, p in ipairs(joueurs) do
 			net.WriteEntity(p)
-			net.WriteUInt(badge(p), 2)
 			if staff then
+				net.WriteUInt(badge(p), 2)
 				net.WriteUInt(slotJoue(p), 4)
 				net.WriteInt(math.Clamp(p:Health(), -32768, 32767), 16)
 				net.WriteDouble(p.getDarkRPVar and tonumber(p:getDarkRPVar("money")) or 0)

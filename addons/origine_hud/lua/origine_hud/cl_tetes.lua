@@ -58,6 +58,8 @@ end
 hook.Add("HUDPaint", "origine_tetes", function()
 	local ply = LocalPlayer()
 	if not IsValid(ply) or ORIGINE.MenuOuvert() or ORIGINE.EnMenu(ply) then return end
+	-- Réservé aux superadmins (réglage InfosTete.SuperadminSeulement)
+	if CH.InfosTete.SuperadminSeulement and not ply:IsSuperAdmin() then return end
 
 	if CurTime() >= prochainTest then
 		prochainTest = CurTime() + CH.InfosTete.Rafraichissement

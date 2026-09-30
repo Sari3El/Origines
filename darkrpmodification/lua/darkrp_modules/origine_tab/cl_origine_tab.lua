@@ -202,8 +202,9 @@ net.Receive("origine_tab_donnees", function()
 	local donnees = {}
 	for _ = 1, net.ReadUInt(8) do
 		local p = net.ReadEntity()
-		local d = { badge = net.ReadUInt(2) }
+		local d = {}
 		if staff then
+			d.badge = net.ReadUInt(2)
 			d.slot = net.ReadUInt(4)
 			d.pv = net.ReadInt(16)
 			d.covan = net.ReadDouble()
@@ -233,16 +234,30 @@ end
 local function filtre(ply, recherche)
 	if recherche == "" then return true end
 	local function contient(s) return string.find(string.lower(s or ""), recherche, 1, true) ~= nil end
-	if contient(nomPerso(ply)) then return true end
-	if T.EstStaff then
-		return contient(nomSteam(ply)) or contient(ply:SteamID()) or contient(ply:SteamID64())
-	end
-	return false
+	-- Joueurs : nom Steam et SteamID seulement ; staff : aussi le nom du personnage
+	if T.EstStaff and contient(nomPerso(ply)) then return true end
+	return contient(nomSteam(ply)) or contient(ply:SteamID()) or contient(ply:SteamID64())
 end
 
 -- Retourne { { cle, nom, couleur, joueurs = {...} }, ... } sans les groupes vides
 local function construireGroupes(recherche)
 	local cfg = CFG()
+	-- Joueurs : un seul groupe trié par nom Steam (les catégories de job trahiraient le RP)
+	if not T.EstStaff then
+		local tous = { cle = "joueurs", nom = cfg.GroupeJoueurs, couleur = COL().Or, joueurs = {} }
+		local selection = { cle = "selection", nom = cfg.GroupeSelection, couleur = COL().Grise, joueurs = {} }
+		for _, p in ipairs(player.GetAll()) do
+			if filtre(p, recherche) then table.insert(enSelection(p) and selection.joueurs or tous.joueurs, p) end
+		end
+		local resultat = {}
+		for _, g in ipairs({ tous, selection }) do
+			if #g.joueurs > 0 then
+				table.sort(g.joueurs, function(a, b) return string.lower(nomSteam(a)) < string.lower(nomSteam(b)) end)
+				resultat[#resultat + 1] = g
+			end
+		end
+		return resultat
+	end
 	local groupes, parNom = {}, {}
 	for _, cat in ipairs(categoriesOrdonnees()) do
 		local g = { cle = "cat_" .. cat.nom, nom = cat.nom, couleur = cat.couleur or COL().Or, joueurs = {} }
@@ -289,6 +304,10 @@ end
 local HAUTEUR_LIGNE = 44
 
 local function infosLigne(ply)
+	-- Joueurs : seulement le nom Steam, le SteamID et le ping
+	if not T.EstStaff then
+		return { nom = nomSteam(ply), steamid = ply:SteamID(), ping = ply:Ping(), couleurJob = COL().Or, badge = 0 }
+	end
 	local d = T.Donnees[ply] or {}
 	local nomR, couleurR = race(ply)
 	local job = team.GetName(ply:Team()) or ""
@@ -332,7 +351,7 @@ local function creerLigne(ply)
 	l.Joueur = ply
 	l.Infos = infosLigne(ply)
 
-	-- Avatar Steam (staff uniquement), créé une fois et gardé
+	-- Avatar Steam, créé une fois et gardé
 	l.Avatar = vgui.Create("AvatarImage", l)
 	l.Avatar:SetPlayer(ply, 64)
 	l.Avatar:SetMouseInputEnabled(false)
@@ -340,8 +359,7 @@ local function creerLigne(ply)
 	l.PerformLayout = function(s, w, h)
 		local a = h - S(10)
 		s.Avatar:SetSize(a, a)
-		s.Avatar:SetPos(w - S(70) - a - S(8), S(5))
-		s.Avatar:SetVisible(T.EstStaff)
+		s.Avatar:SetPos(S(12), S(5))
 	end
 
 	l.DoClick = function(s)
@@ -357,9 +375,18 @@ local function creerLigne(ply)
 		if choisi then contour(0, 0, w, h, c.Or, S(1)) end
 		rect(0, 0, S(4), h, i.couleurJob)
 
-		local x = S(14)
+		local x = S(12) + (h - S(10)) + S(10)
+
+		-- Joueurs : nom Steam, SteamID, ping
+		if not T.EstStaff then
+			texte(ajuster(i.nom, "texte_gras", w * 0.6), "texte_gras", x, h / 2 - S(8), c.Texte, TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER)
+			texte(i.steamid, "petit", x, h / 2 + S(10), c.TexteSombre, TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER)
+			texte(i.ping .. " ms", "petit_gras", w - S(12), h / 2, couleurPing(i.ping), TEXT_ALIGN_RIGHT, TEXT_ALIGN_CENTER)
+			return
+		end
+
 		-- Nom du personnage et race
-		local largeurNom = math.floor(w * 0.32)
+		local largeurNom = math.floor(w * 0.28)
 		texte(ajuster(i.nom, "texte_gras", largeurNom), "texte_gras", x, h / 2 - (i.race and S(8) or 0), c.Texte, TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER)
 		if i.race then
 			texte(ajuster(i.race, "petit", largeurNom), "petit", x, h / 2 + S(10), i.couleurRace or c.TexteSombre, TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER)
@@ -377,8 +404,8 @@ local function creerLigne(ply)
 
 		-- Zone staff : nom Steam, SteamID, slot, K/M
 		if T.EstStaff and i.steam then
-			local xs = w - S(70) - (h - S(10)) - S(16)
-			local largeur = math.floor(w * 0.22)
+			local xs = w - S(80)
+			local largeur = math.floor(w * 0.26)
 			texte(ajuster(i.steam, "petit_gras", largeur), "petit_gras", xs, h / 2 - S(8), c.TexteSombre, TEXT_ALIGN_RIGHT, TEXT_ALIGN_CENTER)
 			local bas = i.steamid .. "  ·  slot " .. (i.slot and i.slot > 0 and i.slot or "—") .. "  ·  K/M " .. i.km
 			texte(ajuster(bas, "petit", largeur), "petit", xs, h / 2 + S(10), c.TexteSombre, TEXT_ALIGN_RIGHT, TEXT_ALIGN_CENTER)
@@ -544,9 +571,41 @@ function T.AfficherFiche(ply)
 	if not IsValid(ply) then return end
 	local c = COL()
 	local corps = fiche.Contenu
+	local mp = fiche.Modele
+	mp:SetVisible(T.EstStaff)
+
+	-- Joueurs : nom Steam, SteamID, profil Steam, ping, voix (aucune info RP)
+	if not T.EstStaff then
+		local entete = vgui.Create("DPanel", corps)
+		entete:Dock(TOP)
+		entete:SetTall(S(36))
+		local nom = nomSteam(ply)
+		entete.Paint = function(_, w)
+			texte(ajuster(nom, "sous_titre", w), "sous_titre", w / 2, S(4), c.Texte, TEXT_ALIGN_CENTER, TEXT_ALIGN_TOP)
+		end
+		ligneInfo(corps, "SteamID", ply:SteamID())
+		ligneInfo(corps, "Ping", function()
+			if not IsValid(ply) then return "—" end
+			local p = ply:Ping()
+			return p .. " ms", couleurPing(p)
+		end)
+		local g = grilleBoutons(corps)
+		ajouterBouton(g, "Copier le SteamID", function() SetClipboardText(ply:SteamID()) end)
+		ajouterBouton(g, "Profil Steam", function() if IsValid(ply) then ply:ShowProfile() end end)
+		if ply ~= LocalPlayer() then
+			local voix = bouton(corps, ply:IsMuted() and "Rétablir sa voix (pour moi)" or "Couper sa voix (pour moi)", function(b)
+				if not IsValid(ply) then return end
+				ply:SetMuted(not ply:IsMuted())
+				b.Libelle = ply:IsMuted() and "Rétablir sa voix (pour moi)" or "Couper sa voix (pour moi)"
+			end)
+			voix:Dock(TOP)
+			voix:SetTall(S(30))
+			voix:DockMargin(0, S(4), 0, 0)
+		end
+		return
+	end
 
 	-- Aperçu 3D (un seul panneau, modèle changé seulement s'il diffère)
-	local mp = fiche.Modele
 	local modele = ply:GetModel() or ""
 	if mp.ModeleActuel ~= modele then
 		mp:SetModel(modele)
@@ -722,7 +781,7 @@ local function construire()
 		rect(0, 0, rw, rh, Color(16, 12, 9, 230))
 		contour(0, 0, rw, rh, s:HasFocus() and c.Or or c.Bordure, S(1))
 		if s:GetText() == "" and not s:HasFocus() then
-			local indication = T.EstStaff and "Rechercher (personnage, nom Steam ou SteamID)…" or "Rechercher un personnage…"
+			local indication = T.EstStaff and "Rechercher (personnage, nom Steam ou SteamID)…" or "Rechercher (nom Steam ou SteamID)…"
 			texte(indication, "texte", S(8), rh / 2, c.TexteSombre, TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER)
 		end
 		s:DrawTextEntryText(c.Texte, c.Or, c.Texte)
