@@ -472,6 +472,15 @@ ACTIONS.rerolls_tous = function(staff, sid, _, _, _, nombre)
 end
 
 -- Slot EVENT de tous les joueurs connectés : débloquer (avec une race) ou verrouiller
+-- Mode « Sans faim » pour tout le serveur
+ACTIONS.sans_faim = function(staff, _, _, etat)
+	local actif = etat == "1"
+	local avant = ORIGINE.SansFaim()
+	ORIGINE.ReglerSansFaim(actif)
+	H.Ajouter({ type = "sans_faim", staff = staff, avant = { actif = avant }, apres = { actif = actif } })
+	ORIGINE.Notifier(staff, actif and "Mode Sans faim activé." or "Mode Sans faim désactivé.", "succes")
+end
+
 ACTIONS.event_tous = function(staff, _, _, etat, race)
 	local debloque = etat == "1"
 	race = race or ""
@@ -609,7 +618,7 @@ recevoirStaff("origine_staff_action", function(ply)
 	local n = net.ReadInt(32)
 	local fn = ACTIONS[action]
 	if not fn then return end
-	local sansCible = action == "annuler" or action == "rerolls_tous" or action == "event_tous"
+	local sansCible = action == "annuler" or action == "rerolls_tous" or action == "event_tous" or action == "sans_faim"
 	if not sansCible and not estSteamID64(sid) then return end
 	local sansSlot = action == "rerolls" or action == "event" or action == "vip_slot"
 	if not sansCible and not sansSlot and (slot < 1 or slot > ORIGINE.NB_SLOTS) then return end

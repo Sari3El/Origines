@@ -18,6 +18,7 @@ ORIGINE.ConfigStaff = {
 		{ id = "rerolls", Nom = "Points de reroll" },
 		{ id = "rerolls_tous", Nom = "Rerolls pour tous" },
 		{ id = "event_tous", Nom = "Slot EVENT pour tous" },
+		{ id = "sans_faim", Nom = "Mode Sans faim" },
 		{ id = "nom", Nom = "Changement de nom" },
 		{ id = "job", Nom = "Changement de job" },
 		{ id = "forcer_slot", Nom = "Slot forcé" },

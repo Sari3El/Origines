@@ -111,7 +111,42 @@ hook.Add("playerGetSalary", "origine_menu", function(ply)
 end)
 
 hook.Add("hungerUpdate", "origine_menu", function(ply)
-	if ORIGINE.EnMenu(ply) then return true end
+	if ORIGINE.EnMenu(ply) or ORIGINE.SansFaim() then return true end
+end)
+
+---------------------------------------------------------------------------
+-- Mode « Sans faim » : gardé dans data/origine/reglages.json
+---------------------------------------------------------------------------
+local FICHIER_REGLAGES = "origine/reglages.json"
+
+local function lireReglages()
+	return util.JSONToTable(file.Read(FICHIER_REGLAGES, "DATA") or "") or {}
+end
+
+function ORIGINE.ReglerSansFaim(actif)
+	SetGlobalBool("origine_sans_faim", actif and true or false)
+	local r = lireReglages()
+	r.sans_faim = actif and true or false
+	file.CreateDir("origine")
+	file.Write(FICHIER_REGLAGES, util.TableToJSON(r, true))
+	if actif then
+		for _, ply in ipairs(player.GetAll()) do
+			if ply.setSelfDarkRPVar and ply:getDarkRPVar("Energy") then ply:setSelfDarkRPVar("Energy", 100) end
+		end
+	end
+end
+
+hook.Add("Initialize", "origine_sans_faim", function()
+	SetGlobalBool("origine_sans_faim", lireReglages().sans_faim == true)
+end)
+
+-- Faim gardée pleine tant que le mode est actif (même si un autre addon la baisse)
+timer.Create("origine_sans_faim", 10, 0, function()
+	if not ORIGINE.SansFaim() then return end
+	for _, ply in ipairs(player.GetAll()) do
+		local e = ply.getDarkRPVar and ply:getDarkRPVar("Energy")
+		if e and e < 100 then ply:setSelfDarkRPVar("Energy", 100) end
+	end
 end)
 
 local function envelopperFaim()
@@ -120,7 +155,7 @@ local function envelopperFaim()
 	meta.OrigineFaimEnveloppee = true
 	local ancien = meta.hungerUpdate
 	meta.hungerUpdate = function(self, ...)
-		if ORIGINE.EnMenu(self) then return end
+		if ORIGINE.EnMenu(self) or ORIGINE.SansFaim() then return end
 		return ancien(self, ...)
 	end
 end

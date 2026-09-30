@@ -50,7 +50,7 @@ local function hudVisible()
 end
 
 local function faimActive(ply)
-	return ply.getDarkRPVar and ply:getDarkRPVar("Energy") ~= nil
+	return not ORIGINE.SansFaim() and ply.getDarkRPVar and ply:getDarkRPVar("Energy") ~= nil
 end
 
 local SANS_METIER = {}

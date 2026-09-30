@@ -367,6 +367,9 @@ function ORIGINE.RaceJoueur(ply)
 	return id ~= "" and id or nil
 end
 function ORIGINE.EnMenu(ply) return ply:GetNW2Bool("origine_enmenu", false) end
+
+-- Mode « Sans faim » (activé depuis !origine > Serveur) : la faim ne baisse plus
+function ORIGINE.SansFaim() return GetGlobalBool("origine_sans_faim", false) end
 function ORIGINE.SlotJoueur(ply) return ply:GetNW2Int("origine_slot", 0) end
 
 function ORIGINE.ModsJoueur(ply)

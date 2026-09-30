@@ -556,6 +556,18 @@ function S.OngletServeur()
 		end)
 	end, 220)
 
+	titreSection(pan, "Mode Sans faim")
+	local actif = ORIGINE.SansFaim()
+	lignesTexte(pan, {
+		{ { "État : ", COL.Texte }, { actif and "activé" or "désactivé", actif and COL.Succes or COL.TexteSombre, "texte_gras" } },
+		{ { "Activé, la faim ne baisse plus et reste pleine ; la jauge disparaît du HUD.", COL.TexteSombre } },
+	})
+	local rf = rangeeBoutons(pan)
+	rf:Ajouter(actif and "Désactiver" or "Activer", function()
+		action("sans_faim", "", 0, actif and "0" or "1")
+		timer.Simple(0.5, function() if IsValid(S.Fenetre) and S.Onglet == "serveur" then S.OngletServeur() end end)
+	end, 220)
+
 	titreSection(pan, "Slot EVENT")
 	lignesTexte(pan, {
 		{ { "Débloque le slot EVENT de tous les joueurs connectés avec la race choisie, ou le verrouille.", COL.TexteSombre } },
