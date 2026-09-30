@@ -52,7 +52,7 @@ Tous les réglages sont dans les `sh_config.lua`, commentés en français :
 - `origine_chat/lua/origine_chat/sh_config.lua` : taille, police, durée d'affichage, longueur maximum,
   anti-spam, commandes proposées.
 - `origine_selecteur/lua/origine_selecteur/sh_config.lua` : fermeture automatique (3 s), seuil d'affichage
-  des cooldowns (1 s), sons (activés, volume, fichiers), armes en tête du slot 1 (Sacoche).
+  des cooldowns (1 s), sons (désactivés par défaut), armes en tête du slot 1 (Sacoche).
 - `darkrpmodification/lua/darkrp_modules/origine_tab/sh_config.lua` : liens Discord / règlement / collection
   Workshop (**à remplir**), seuils du ping, actions staff et commandes ULX associées.
 
@@ -162,7 +162,7 @@ function SWEP:OrigineCooldowns()
 end
 ```
 
-Les deux sons (`sound/origine_selecteur/`) sont à mettre dans la collection Workshop du serveur.
+Le sélecteur est silencieux (sons désactivables / remplaçables dans sa config).
 
 ## Pour les autres addons
 

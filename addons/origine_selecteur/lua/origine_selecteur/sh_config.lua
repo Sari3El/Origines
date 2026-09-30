@@ -37,13 +37,14 @@ ORIGINE.ConfigSelecteur = {
 	LargeurCarte = 150,
 	HauteurIcone = 48,
 
-	-- Sons (fichiers dans addons/origine_selecteur/sound/)
+	-- Sons : désactivés (le sélecteur est silencieux).
+	-- Pour en remettre : Actives = true et chemins relatifs à sound/, ex. "origine_selecteur/clic.wav"
 	Sons = {
-		Actives = true,
+		Actives = false,
 		Volume = 0.5,          -- 0 à 1
 		Fichiers = {
-			Defilement = "origine_selecteur/defilement.wav",   -- molette, touches 1 à 6
-			Selection = "origine_selecteur/selection.wav",     -- arme équipée
+			Defilement = "",   -- molette, touches 1 à 6
+			Selection = "",    -- arme équipée
 		},
 	},
 
