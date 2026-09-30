@@ -120,6 +120,11 @@ hook.Add("EntityTakeDamage", "origine_races", function(cible, dmg)
 	local attaquant = dmg:GetAttacker()
 	local attaquantJoueur = IsValid(attaquant) and attaquant:IsPlayer()
 	local categorie = attaquantJoueur and ORIGINE.CategorieArme(classeArme(dmg, attaquant)) or nil
+	-- Autres addons : return "magie", "melee"… pour remplacer la catégorie (ex. pouvoirs du Mage, origine_armes)
+	if attaquantJoueur then
+		local autre = hook.Run("origine_CategorieDegats", dmg, attaquant, categorie)
+		if isstring(autre) then categorie = autre end
+	end
 
 	-- Bonus/malus de l'attaquant
 	if attaquantJoueur and categorie then

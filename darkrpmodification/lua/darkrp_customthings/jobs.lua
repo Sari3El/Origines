@@ -132,8 +132,21 @@ GAMEMODE.Config.DefaultWeapons = { "weapon_physgun", "gmod_tool", "weapon_physca
 -- Aucune arme en plus pour les admins
 GAMEMODE.Config.AdminWeapons = {}
 
--- Armes propres à chaque job (pour l'instant : les mains et la sacoche seulement)
+-- Armes propres à chaque job : les mains, la sacoche, et la lame wOS de la faction (origine_armes)
 local ARMES_JOB = { "origine_mains", "origine_sacoche" }
+local LAME_FACTION = {
+    empire     = "weapon_origine_empire",
+    lycan      = "weapon_origine_nuit",
+    vampire    = "weapon_origine_nuit",
+    hybride    = "weapon_origine_nuit",
+    consortium = "weapon_origine_consortium",
+    lames      = "weapon_origine_consortium",
+}
+local function armesDuJob(faction)
+    local liste = table.Copy(ARMES_JOB)
+    if LAME_FACTION[faction] then liste[#liste + 1] = LAME_FACTION[faction] end
+    return liste
+end
 
 -- Salaire selon le grade (en Covan, à ajuster)
 local function salaire(grade)
@@ -209,7 +222,7 @@ local function creerJob(faction, nom, grade, prefixe, extra)
         color = COULEURS[faction],
         model = MODELES[faction],
         description = description,
-        weapons = ARMES_JOB,
+        weapons = armesDuJob(faction),
         command = cmd,
         max = extra.max or 0,
         salary = salaire(grade),

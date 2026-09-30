@@ -147,6 +147,11 @@ hook.Add("origine_PeutChangerPerso", "origine_mise_a_terre", function(ply)
 	if ORIGINE.EstLigote(ply) then return false, "Impossible de changer de personnage en étant ligoté." end
 end)
 
+-- wOS ALCS : aucun pouvoir de Force (saut de Force compris) à terre ou ligoté
+hook.Add("wOS.ALCS.CanUseForcepower", "origine_mise_a_terre", function(ply)
+	if ORIGINE.EstImmobilise(ply) then return true end
+end)
+
 hook.Add("CanPlayerSuicide", "origine_mise_a_terre", function(ply)
 	if ORIGINE.EstImmobilise(ply) then return false end
 end)

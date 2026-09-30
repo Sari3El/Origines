@@ -1,0 +1,91 @@
+ORIGINE DU MONDE — ARMES wOS DE BASE (origine_armes)
+=====================================================
+
+Contenu
+-------
+lua/weapons/weapon_origine_nuit.lua        Lame de la Nuit       (Créatures de la nuit)  Saut de Force uniquement
+lua/weapons/weapon_origine_empire.lua      Lame de l'Empire      (Empire)                Saut de Force uniquement
+lua/weapons/weapon_origine_consortium.lua  Lame du Consortium    (Consortium)            Saut de Force uniquement
+lua/weapons/weapon_origine_mage.lua        Lame du Mage          (Mage)                  Tous les pouvoirs et tous les ultimes
+lua/origine_armes/sh_armes.lua             Commun aux 4 armes (lame invisible, listes du Mage, cooldowns, races)
+materials/origine_armes/lame_invisible.*   Matériau entièrement transparent de la lame
+sound/origine_armes/                       silence.wav (allumage, extinction, bourdonnement) et epee_swing.wav
+
+Catégories du menu des armes : « Origine Créatures de la nuit Weapon », « Origine Empire Weapon »,
+« Origine Consortium Weapon », « Origine Mage Weapon » (réservées aux admins dans le menu Q).
+Les noms d'affichage sont provisoires : SWEP.PrintName dans chaque fichier d'arme.
+
+À mettre dans la collection Workshop du serveur : les dossiers materials/origine_armes et sound/origine_armes.
+
+
+1. Le type de lame « Invisible » (seule modification liée à ALCS)
+----------------------------------------------------------------
+Le type de lame est enregistré AUTOMATIQUEMENT par origine_armes (sh_armes.lua) dès que wOS est
+chargé : il n'y a normalement rien à modifier dans les fichiers d'ALCS, et une mise à jour de wOS
+ne l'efface pas.
+
+Si vous préférez l'avoir dans le fichier de wOS (ou si la lame réapparaît après une mise à jour de wOS),
+ajoutez ce bloc tout en bas de lua/wos/advswl/lightsaber/blades/default_blades.lua :
+
+wOS.ALCS.LightsaberBase:AddBlade({
+	Name = "Invisible",
+	InnerMaterial = "origine_armes/lame_invisible",
+	EnvelopeMaterial = "",
+	UseParticle = false,
+	DrawTrail = false,
+	QuillonParticle = false,
+	QuillonInnerMaterial = "",
+	QuillonEnvelopeMaterial = "",
+})
+
+Pourquoi c'est invisible : wOS ne dessine pas un matériau vide ("") ; le matériau intérieur est
+entièrement transparent ; pas de particule ni de traînée ; la couleur de la lame est noire
+(SWEP.UseColor = Color( 0, 0, 0 )), donc la lumière dynamique de la lame n'éclaire rien.
+Si une lueur restait visible en jeu : dans le fichier de l'arme, ajouter SWEP.NoBlade = true
+(wOS ne dessine alors plus du tout la lame ; à tester, car la base wOS est chiffrée côté serveur).
+
+
+2. Détection des coups
+----------------------
+wOS.ALCS.Config.LightsaberTrace (lua/wos/advswl/config/lightsaber/sv_config.lua) vaut
+WOS_ALCS.TRACE.INTERP dans la version installée : la trace suit le trajet de la lame, les coups
+sont bien détectés avec une lame invisible. À ne pas mettre sur MINIMAL (moins précis).
+À noter : avec INTERP, une lame qui frôle un mur laisse une petite marque de brûlure et des
+étincelles (effet de sabre laser de wOS). MINIMALINTERP les supprime tout en gardant la précision,
+si cela gêne en jeu.
+
+
+3. Remplacer le manche par une vraie épée (plus tard)
+-----------------------------------------------------
+Chaque modèle d'épée doit être préparé comme un manche wOS :
+- un point d'attache nommé  blade1  sur l'os  ValveBiped.Bip01_R_Hand ,
+- placé à la garde de l'épée et orienté vers la pointe.
+Puis, dans le fichier de l'arme :
+- SWEP.UseHilt et SWEP.WorldModel = le chemin du modèle de l'épée ;
+- SWEP.UseLength = la longueur de la lame du modèle (en unités), pour que la zone de touche
+  corresponde à l'épée visible.
+
+
+4. La Lame du Mage
+------------------
+Ses listes (SWEP.ForcePowerList et SWEP.DevestatorList) sont construites depuis wOS
+(wOS.AvailablePowers et wOS.AvailableDevestators) : tous les pouvoirs et ultimes installés, y compris
+ceux des packs Dark Ascension et Icefuse s'ils sont présents, et tout pouvoir ajouté plus tard.
+Sans les packs, leurs pouvoirs sont simplement absents (wOS ignore les noms inconnus).
+Les ultimes demandent Meditate ou Channel Hatred (présents dans sa liste), 100 % de charge et l'arme
+allumée. Il n'existe pas encore de job « Mage » : l'arme n'est donnée par aucun job pour l'instant
+(ajoutez "weapon_origine_mage" aux armes du job quand il existera, dans jobs.lua).
+
+Avec le menu de Force HYBRID de wOS, wOS limite les emplacements à wOS.ALCS.Config.MaximumForceSlots :
+le Mage place ses pouvoirs dans ses emplacements avec Alt + F.
+
+
+5. Tests à faire en jeu
+-----------------------
+- Avec ALCS et ses packs, puis sans les packs : la Lame du Mage n'affiche que les pouvoirs présents.
+- Aucune lame, lueur ni traînée ; seul le manche est visible. Un coup touche à la même distance.
+- Aucun son de sabre laser (allumage, bourdonnement, extinction). Les sons d'impact entre deux lames
+  restent ceux de wOS (fichiers chiffrés de wOS, non modifiés).
+- Les armes de faction n'ont que le saut de Force ; le Mage peut méditer, se charger à 100 %, lancer un ultime.
+- Un joueur à terre ou ligoté ne peut utiliser aucun pouvoir (origine_mise_a_terre).
+- Un pouvoir offensif du Mage sur un Descendant du Runiste est réduit par sa résistance magique.

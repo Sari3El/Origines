@@ -16,11 +16,12 @@ Addons Garry's Mod (DarkRP + ULX/ULib) réalisés d'après les cahiers des charg
 | `origine_mise_a_terre` | Mise à terre à 15 PV ou moins, relever, ligoter, escorter, délier | origine_personnages, origine_inventaire |
 | `origine_courrier` | Missives sur parchemin : personnages, faction, autres factions, tout le serveur | origine_personnages, origine_inventaire, origine_staff |
 | `origine_tickets` | Tickets F6 : demandes au staff, file, historique, statistiques | origine_personnages |
+| `origine_armes` | 4 armes wOS ALCS (Nuit, Empire, Consortium, Mage) : manche simple, lame invisible, saut de Force / tous les pouvoirs | wOS ALCS ; liens facultatifs avec les autres addons |
 | `darkrpmodification/lua/darkrp_modules/origine_tab/` | Menu TAB qui remplace le scoreboard de FAdmin (pas un dossier d'addon) | DarkRP, ULX ; origine_personnages et origine_staff conseillés |
 
 ## Installation
 
-1. Copier les **onze dossiers** de `addons/` dans `garrysmod/addons/` du serveur
+1. Copier les **douze dossiers** de `addons/` dans `garrysmod/addons/` du serveur
    (un dossier par système, ne pas les fusionner).
 2. Redémarrer le serveur. La console doit afficher :
    ```
@@ -36,6 +37,7 @@ Addons Garry's Mod (DarkRP + ULX/ULib) réalisés d'après les cahiers des charg
    [Origine] origine_mise_a_terre chargé.
    [Origine] origine_courrier chargé.
    [Origine] origine_tickets chargé.
+   [Origine] origine_armes chargé.
    ```
    Copier aussi `darkrpmodification/lua/darkrp_modules/origine_tab/` dans le dossier `darkrpmodification`
    du serveur (menu TAB : DarkRP le charge tout seul).
@@ -280,6 +282,18 @@ tickets traités, temps moyen avant la première réponse, note moyenne par staf
 Les tickets ouverts restent après un redémarrage ; les fermés sont gardés 90 jours. Option Discord :
 `Discord.Webhook` dans la config (envoyé quand aucun staff n'est connecté).
 
+## Armes wOS de base
+
+Quatre copies de sabres wOS ALCS dans `origine_armes/lua/weapons/` (voir `origine_armes/LISEZMOI.txt`) :
+Lame de la Nuit, de l'Empire et du Consortium (saut de Force uniquement), Lame du Mage (tous les pouvoirs et
+ultimes installés, listes construites depuis wOS). Manche simple, lame « Invisible » qui garde sa portée
+(`SWEP.UseLength = 42`), aucun son ni effet de sabre laser, pas de brûlure ni d'étourdissement, arbres de
+compétences et atelier wOS sans effet. Catégories « Origine [Faction] Weapon » du menu des armes.
+Données par les jobs de leur faction (`jobs.lua`) ; avec `C.ArmesDuJob = true`, le loadout strict
+d'origine_personnages donne les armes du job (sauf police et clés DarkRP). Aucun job « Mage » n'existe encore.
+Intégration : sélecteur (nom seul, cooldown du pouvoir choisi), inventaire (rangeables), mise à terre (aucun
+pouvoir à terre ou ligoté), races (les 4 lames en « mêlée », les pouvoirs offensifs du Mage en « magie »).
+
 ## Pour les autres addons
 
 Seuls les points de reroll sont liés au compte ; tout le reste appartient au personnage.
@@ -299,6 +313,7 @@ hook.Add("origine_ChatMessage", "mon_addon", function(message) end)  -- client, 
 ORIGINE.Logs.Ajouter("categorie", acteur, cible, "texte", { details })  -- serveur, ajouter un log
 hook.Add("origine_PeutChangerPerso", "mon_addon", function(ply) return false, "raison" end)  -- bloquer !perso
 hook.Add("origine_RegenBloquee", "mon_addon", function(ply) return true end)               -- suspendre la régénération
+hook.Add("origine_CategorieDegats", "mon_addon", function(dmg, attaquant, cat) return "magie" end) -- catégorie d'un coup (races)
 ORIGINE.DB.Transaction({ { sql, params }, … }, function(ok) end)  -- plusieurs écritures, tout ou rien
 ORIGINE.Staff.AjouterExtensionCK({ nom, lire, vider, restaurer })  -- données remises à zéro au CK / RPK
 ORIGINE.Inv.Autoriser(classe)  ORIGINE.Inv.AjouterActionObjet(classe, id, nom, icone, fn)
@@ -409,6 +424,7 @@ python3 tests/tests_logique.py        # noms, Covan, taux, tirage, piles d'inven
 python3 tests/tester_jobs.py          # jobs.lua : commandes uniques, catégories, armes
 python3 tests/tester_selecteur.py     # sélecteur : cooldowns, Sacoche en tête, fastswitch, fermeture
 python3 tests/tester_cycle_banque.py  # cycle 15/45 min, heure RP, reprise ; frais, montants, virements
+python3 tests/tester_armes.py         # armes wOS : réglages, listes du Mage avec / sans packs, cooldown, magie
 ```
 
 À vérifier en jeu (points que les tests hors jeu ne couvrent pas) : la séquence au sol

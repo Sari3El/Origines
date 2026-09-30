@@ -66,9 +66,28 @@ end)
 -- Armes : uniquement C.Loadout (DarkRP ne donne plus rien : ni stunstick,
 -- ni clés, ni armes de job ou d'admin)
 ---------------------------------------------------------------------------
+-- Armes jamais données, même si un job les liste (police DarkRP, clés…)
+local LISTE_NOIRE = {
+	stunstick = true, weapon_stunstick = true, arrest_stick = true, unarrest_stick = true, door_ram = true,
+	keys = true, pocket = true, weaponchecker = true, weapon_keypadchecker = true,
+}
+
+-- Armes du job (jobs.lua) données en plus de C.Loadout si C.ArmesDuJob (ex. lames wOS de faction)
+local function armesDuJob(ply)
+	local job = C.ArmesDuJob and RPExtraTeams and RPExtraTeams[ply:Team()]
+	local liste = {}
+	for _, c in ipairs(job and job.weapons or {}) do
+		if not LISTE_NOIRE[c] then liste[#liste + 1] = c end
+	end
+	return liste
+end
+
 hook.Add("PlayerLoadout", "origine_loadout", function(ply)
 	if not C.LoadoutStrict or ORIGINE.EnMenu(ply) then return end
 	for _, classe in ipairs(C.Loadout) do
+		if not ply:HasWeapon(classe) then ply:Give(classe) end
+	end
+	for _, classe in ipairs(armesDuJob(ply)) do
 		if not ply:HasWeapon(classe) then ply:Give(classe) end
 	end
 	return true -- empêche le loadout de DarkRP
@@ -80,6 +99,7 @@ local function retirerArmesDarkRP(ply)
 	if not C.LoadoutStrict or not IsValid(ply) or ORIGINE.EnMenu(ply) then return end
 	local garder = {}
 	for _, c in ipairs(C.Loadout) do garder[c] = true end
+	for _, c in ipairs(armesDuJob(ply)) do garder[c] = true end
 	local aRetirer = {}
 	local job = RPExtraTeams and RPExtraTeams[ply:Team()]
 	for _, c in ipairs(job and job.weapons or {}) do aRetirer[c] = true end

@@ -126,6 +126,7 @@ local ICONE_DEFAUT = surface.GetTextureID("weapons/swep")
 local BASE
 
 local function aIcone(w)
+	if w.OrigineSansIcone then return false end   -- ex. lames wOS d'origine_armes : le nom seul
 	if not w:IsScripted() then return CS.IconesHL2[w:GetClass()] ~= nil end
 	BASE = BASE or weapons.GetStored("weapon_base")
 	if w.DrawWeaponSelection and BASE and w.DrawWeaponSelection ~= BASE.DrawWeaponSelection then return true end

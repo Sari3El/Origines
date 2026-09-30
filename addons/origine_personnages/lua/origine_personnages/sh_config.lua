@@ -120,6 +120,9 @@ C.CommandesPolice = {
 -- (Les SWEPs de race et les armes sauvegardées du personnage sont ajoutés ensuite.)
 -- Mettre LoadoutStrict = false pour laisser DarkRP donner ses armes.
 C.LoadoutStrict = true
+-- true : les armes listées dans le job (jobs.lua, champ weapons) sont aussi données, sauf les armes
+-- de police / clés de DarkRP. Sert aux lames wOS de faction (origine_armes).
+C.ArmesDuJob = true
 C.Loadout = { "weapon_physgun", "gmod_tool", "weapon_physcannon", "origine_mains", "origine_sacoche" }
 
 -- SWEP sélectionné à chaque apparition (mains vides, bras le long du corps). "" = aucun
@@ -213,7 +216,7 @@ C.Raretes = {
 ---------------------------------------------------------------------------
 C.CategoriesArmes = {
 	melee = {        -- mêlée (épées, haches, masses…)
-		"",
+		"weapon_origine_nuit", "weapon_origine_empire", "weapon_origine_consortium", "weapon_origine_mage",
 	},
 	lame_legere = {  -- lames légères (dagues, rapières…)
 		"",
