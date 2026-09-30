@@ -6,9 +6,9 @@ Médiéval RP — Origine du monde
 Les jobs sont générés depuis les tables de hiérarchie ci-dessous : pour
 renommer un grade, changez son nom dans la table, le job suit.
 
-Armes : chaque job a uniquement les armes de base (clés, physics gun,
-toolgun, gravity gun, données à tous) + le SWEP « origine_mains ».
-La sacoche et les SWEPs de race sont donnés par les addons Origine.
+Armes : chaque job a uniquement le toolgun, le physics gun, le gravity gun,
+les mains (origine_mains) et la sacoche (origine_sacoche). Rien d'autre.
+Les SWEPs de race sont donnés en plus par origine_personnages.
 
 This file contains your custom jobs.
 This file should also contain jobs from DarkRP that you edited.
@@ -127,11 +127,13 @@ local MODELES = {
     lames      = { MODELE_PAR_DEFAUT },
 }
 
--- Armes données à TOUS les joueurs : clés (touches de base), physics gun, toolgun, gravity gun
-GAMEMODE.Config.DefaultWeapons = { "keys", "weapon_physgun", "gmod_tool", "weapon_physcannon" }
+-- Armes données à TOUS les joueurs : physics gun, toolgun, gravity gun (pas de clés)
+GAMEMODE.Config.DefaultWeapons = { "weapon_physgun", "gmod_tool", "weapon_physcannon" }
+-- Aucune arme en plus pour les admins
+GAMEMODE.Config.AdminWeapons = {}
 
--- Armes propres à chaque job (pour l'instant : les mains vides seulement)
-local ARMES_JOB = { "origine_mains" }
+-- Armes propres à chaque job (pour l'instant : les mains et la sacoche seulement)
+local ARMES_JOB = { "origine_mains", "origine_sacoche" }
 
 -- Salaire selon le grade (en Covan, à ajuster)
 local function salaire(grade)

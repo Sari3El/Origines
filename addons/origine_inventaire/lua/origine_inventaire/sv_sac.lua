@@ -11,13 +11,36 @@ local CI = ORIGINE.ConfigInv
 util.AddNetworkString("origine_sac")
 util.AddNetworkString("origine_sac_ferme")
 
--- Les armes vont dans le sac : DarkRP ne doit pas les jeter en plus
-hook.Add("DarkRPFinishedLoading", "origine_sac", function()
+-- DarkRP ne jette rien à la mort : c'est géré ici (sac de mort, Covan perdus)
+local function reglerMortDarkRP()
 	local gm = GAMEMODE or GM
-	if gm and gm.Config then gm.Config.dropweapondeath = false end
-end)
-hook.Add("Initialize", "origine_sac", function()
-	if GAMEMODE and GAMEMODE.Config then GAMEMODE.Config.dropweapondeath = false end
+	if gm and gm.Config then
+		gm.Config.dropweapondeath = false
+		gm.Config.dropmoneyondeath = false
+	end
+end
+hook.Add("DarkRPFinishedLoading", "origine_sac", reglerMortDarkRP)
+hook.Add("Initialize", "origine_sac", reglerMortDarkRP)
+
+-- À la mort, une partie des Covan portés tombe au sol (CovanPerdusMort)
+hook.Add("DoPlayerDeath", "origine_covan_mort", function(ply)
+	if not ORIGINE.PersoActuel(ply) or not ply.getDarkRPVar or not ply.addMoney then return end
+	local argent = ply:getDarkRPVar("money") or 0
+	local perdu = math.floor(argent * (CI.CovanPerdusMort or 0))
+	if perdu <= 0 then return end
+	ply:addMoney(-perdu)
+	local pos = ply:GetPos() + Vector(0, 0, 12)
+	if DarkRP and DarkRP.createMoneyBag then
+		DarkRP.createMoneyBag(pos, perdu)
+	else
+		local sac = ents.Create("spawned_money")
+		if IsValid(sac) then
+			sac:SetPos(pos)
+			sac:Spawn()
+			if sac.Setamount then sac:Setamount(perdu) end
+		end
+	end
+	hook.Run("origine_CovanPerdusMort", ply, perdu)
 end)
 
 function I.CreerSac(pos, cases, nom)
@@ -31,7 +54,7 @@ function I.CreerSac(pos, cases, nom)
 end
 
 hook.Add("DoPlayerDeath", "origine_sac", function(ply)
-	if not ORIGINE.PersoActuel(ply) then return end
+	if not CI.Sac.Actif or not ORIGINE.PersoActuel(ply) then return end
 	local cases = I.DuJoueur(ply)
 	local contenu = {}
 	for _, c in ipairs(cases or {}) do contenu[#contenu + 1] = table.Copy(c) end

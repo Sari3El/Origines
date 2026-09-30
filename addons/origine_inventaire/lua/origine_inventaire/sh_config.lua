@@ -24,7 +24,12 @@ ORIGINE.ConfigInv = {
 	DelaiEcriture = 1,
 
 	-- Sac de mort
+	-- À la mort : fraction des Covan portés qui tombent au sol (0.5 = la moitié, 0 = rien)
+	CovanPerdusMort = 0.5,
+
 	Sac = {
+		-- false : pas de sac de mort, l'inventaire et les armes restent au joueur
+		Actif = false,
 		Duree = 600,   -- secondes avant disparition (10 minutes) ; son contenu est alors perdu
 		Portee = 120,  -- distance maximum pour fouiller le sac
 		Modele = "models/props_junk/garbage_bag001a.mdl",

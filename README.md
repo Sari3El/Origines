@@ -83,8 +83,8 @@ dans XGUI (onglet Groupes, catégorie « Origine »). Elle est vérifiée côté
 
 `darkrpmodification/lua/darkrp_customthings/jobs.lua` : 52 jobs générés depuis les tables de hiérarchie
 (Empire, Créatures de la nuit, Consortium) en 7 catégories, plus « Villageois », le job par défaut.
-Chaque job n'a que les armes de base (clés, physics gun, toolgun, gravity gun) et le SWEP `origine_mains`
-(mains vides, bras le long du corps). Uniques (max 1) : Capitaine de la Milice, L'Originel, Banquier.
+Chaque job n'a que le toolgun, le physics gun, le gravity gun, le SWEP `origine_mains` (mains vides, bras
+le long du corps) et la sacoche. Pas de clés, rien de plus pour les admins. Uniques (max 1) : Capitaine de la Milice, L'Originel, Banquier.
 Aucune police DarkRP (`C.DesactiverPolice` : avis de recherche, mandats, prison, couvre-feu, licences retirés). Chaque faction a son chat de groupe (`/g`).
 
 Dans `darkrpmodification/lua/darkrp_config/disabled_defaults.lua` :
@@ -185,7 +185,9 @@ Mise en place : les Covan qu'un joueur avait déjà dans DarkRP sont transféré
 - **Rerolls pour tous** (event) : donnés aux joueurs connectés.
 - **Poche DarkRP** : désactivée par hook (`canPocket`) et retirée des armes par défaut. Vous pouvez aussi
   ajouter `["pocket"] = true` dans `darkrpmodification/lua/darkrp_config/disabled_defaults.lua`.
-- **Sac de mort** : `dropweapondeath` de DarkRP est coupé, car les armes portées vont dans le sac.
+- **Mort** : pour l'instant, rien ne tombe à la mort sauf la moitié des Covan portés (`CovanPerdusMort = 0.5`).
+  Le sac de mort est codé mais désactivé (`Sac.Actif = false` dans la config d'origine_inventaire).
+  `dropweapondeath` et `dropmoneyondeath` de DarkRP sont coupés.
 
 ## À définir plus tard (prévu dans le code, valeurs neutres)
 

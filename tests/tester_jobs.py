@@ -31,7 +31,7 @@ if len(set(commandes)) != len(commandes):
 for j in jobs:
     if not G.CATS[j.category]:
         erreurs.append(f"catégorie inconnue pour {j.nom}")
-    if list(j.weapons.values()) != ["origine_mains"]:
+    if list(j.weapons.values()) != ["origine_mains", "origine_sacoche"]:
         erreurs.append(f"armes inattendues pour {j.nom}")
     if not j.command.replace("_", "").isalnum():
         erreurs.append(f"commande invalide : {j.command}")

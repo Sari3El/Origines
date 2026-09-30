@@ -355,6 +355,7 @@ end)
 local function covan(n) return ORIGINE.FormaterCovan(tonumber(n) or 0) end
 local function nomObjet(t) return istable(t) and (t.name or t.entity or t.ent) or tostring(t) end
 
+hook.Add("origine_CovanPerdusMort", "origine_logs", function(ply, montant) L.Ajouter("economie", ply, nil, "perd " .. covan(montant) .. " en mourant", { montant = montant }) end)
 hook.Add("playerDroppedMoney", "origine_logs", function(ply, montant) L.Ajouter("economie", ply, nil, "jette " .. covan(montant), { montant = montant }) end)
 hook.Add("playerPickedUpMoney", "origine_logs", function(ply, montant) L.Ajouter("economie", ply, nil, "ramasse " .. covan(montant), { montant = montant }) end)
 hook.Add("playerGaveMoney", "origine_logs", function(ply, cible, montant) L.Ajouter("economie", ply, cible, "donne " .. covan(montant), { montant = montant }) end)
