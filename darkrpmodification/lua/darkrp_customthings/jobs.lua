@@ -141,14 +141,16 @@ end
 -- ============================================================
 -- CATÉGORIES
 -- ============================================================
+-- Couleurs des factions (utilisées aussi par le HUD Origine)
+-- Civils : vert / Empire : bleu / Créatures de la nuit : rouge / Consortium : doré
 local COULEURS = {
-    civil      = Color(150, 140, 120),
-    empire     = Color(170, 40, 40),
-    lycan      = Color(140, 100, 60),
-    vampire    = Color(130, 20, 40),
-    hybride    = Color(110, 60, 150),
-    consortium = Color(200, 160, 60),
-    lames      = Color(90, 120, 140),
+    civil      = Color(70, 165, 80),
+    empire     = Color(55, 110, 210),
+    lycan      = Color(190, 40, 35),
+    vampire    = Color(165, 20, 40),
+    hybride    = Color(210, 45, 60),
+    consortium = Color(215, 172, 55),
+    lames      = Color(195, 150, 45),
 }
 
 local CATEGORIES = {

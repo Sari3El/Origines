@@ -185,6 +185,17 @@ hook.Add("InitPostEntity", "origine_verif_darkrp", function()
 		MsgC(rouge, "[Origine] ", blanc, "Le module faim de DarkRP est désactivé : la jauge de faim est masquée.\n")
 		MsgC(rouge, "[Origine] ", blanc, "Pour l'activer : darkrpmodification/lua/darkrp_config/disabled_defaults.lua -> [\"hungermod\"] = false\n")
 	end
+	-- Jobs de base de DarkRP encore actifs (hobo, citizen, police…)
+	local restants = {}
+	for _, job in pairs(RPExtraTeams) do
+		if ORIGINE.DansListe({ "citizen", "cp", "mayor", "gangster", "mobboss", "gundealer", "medic", "chief", "hobo" }, job.command) then
+			restants[#restants + 1] = job.command
+		end
+	end
+	if #restants > 0 then
+		MsgC(rouge, "[Origine] ", blanc, "Jobs de base de DarkRP encore actifs : " .. table.concat(restants, ", ") .. ".\n")
+		MsgC(rouge, "[Origine] ", blanc, "Pour les retirer : darkrpmodification/lua/darkrp_config/disabled_defaults.lua, section [\"jobs\"] -> true\n")
+	end
 	if not ORIGINE.EquipeSelection then
 		MsgC(rouge, "[Origine] ", blanc, "Le job caché « " .. ORIGINE.Config.JobSelection.Nom .. " » n'a pas pu être créé.\n")
 	end

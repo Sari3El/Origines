@@ -93,6 +93,35 @@ local function choisirRace(titre, fn)
 	ok:SetTall(UI.S(38))
 end
 
+-- Choisir un job (tous les jobs DarkRP, rangés par catégorie) ; fn(commande)
+function S.ChoisirJob(titre, fn)
+	local f = UI.Fenetre(titre, UI.S(460), UI.S(190))
+	f:SetDrawOnTop(true)
+	local combo = UI.Combo(f)
+	combo:Dock(TOP)
+	combo:SetTall(UI.S(34))
+	combo:SetValue("Choisir un job")
+	local jobs = {}
+	for t, job in pairs(RPExtraTeams or {}) do
+		if t ~= ORIGINE.EquipeSelection and not job.origine_cache then jobs[#jobs + 1] = job end
+	end
+	table.sort(jobs, function(a, b)
+		if (a.category or "") ~= (b.category or "") then return (a.category or "") < (b.category or "") end
+		return (a.sortOrder or 0) < (b.sortOrder or 0)
+	end)
+	for _, job in ipairs(jobs) do
+		combo:AddChoice((job.category and (job.category .. " — ") or "") .. job.name, job.command)
+	end
+	local ok = UI.Bouton(f, "Valider", function()
+		local _, cmd = combo:GetSelected()
+		if not cmd then return end
+		f:Close()
+		fn(cmd)
+	end)
+	ok:Dock(BOTTOM)
+	ok:SetTall(UI.S(38))
+end
+
 ---------------------------------------------------------------------------
 -- Fenêtre principale
 ---------------------------------------------------------------------------
@@ -271,6 +300,9 @@ local function carteSlot(parent, fiche, s)
 			{ libelle = "Prénom", valeur = p.prenom },
 			{ libelle = "Nom", valeur = p.nom },
 		}, function(v) action("nom", sid, s, v[1], v[2]) end)
+	end)
+	r1:Ajouter("Changer le job", function()
+		S.ChoisirJob("Job de " .. p.prenom .. " " .. p.nom, function(cmd) action("job", sid, s, cmd) end)
 	end)
 	r1:Ajouter("Ajouter un objet", function()
 		local liste = {}

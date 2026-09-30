@@ -19,6 +19,7 @@ ORIGINE.ConfigStaff = {
 		{ id = "rerolls_tous", Nom = "Rerolls pour tous" },
 		{ id = "event_tous", Nom = "Slot EVENT pour tous" },
 		{ id = "nom", Nom = "Changement de nom" },
+		{ id = "job", Nom = "Changement de job" },
 		{ id = "forcer_slot", Nom = "Slot forcé" },
 		{ id = "event", Nom = "Slot EVENT" },
 		{ id = "vip_slot", Nom = "Slot 3 (VIP)" },

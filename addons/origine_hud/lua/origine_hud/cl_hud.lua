@@ -1,8 +1,12 @@
 --[[-----------------------------------------------------------------------
 	Origine du monde — HUD (client)
 
-	Bloc compact en bas à gauche, juste sous la chatbox (position calculée
-	depuis chat.GetChatBoxPos : il ne la chevauche jamais).
+	Bloc en bas à gauche, juste sous la chatbox (position calculée depuis
+	chat.GetChatBoxPos : il ne la chevauche jamais).
+	Les accents du cadre prennent la couleur de la faction du joueur
+	(couleur de son job) : Empire bleu, Créatures de la nuit rouge,
+	Consortium doré, Civils vert.
+
 	Polices, matériaux et formes créés une seule fois, jamais pendant le
 	dessin ; aucune couleur ni table créée à chaque image.
 -------------------------------------------------------------------------]]
@@ -14,16 +18,19 @@ local CH = ORIGINE.ConfigHUD
 ORIGINE.HUD = ORIGINE.HUD or {}
 local HUD = ORIGINE.HUD
 
-UI.DefinirPolice("hud_nom", 21, 700, true)
+UI.DefinirPolice("hud_nom", 23, 700, true)
+UI.DefinirPolice("hud_faction", 13, 700, true)
 UI.DefinirPolice("hud_texte", 15, 600)
-UI.DefinirPolice("hud_chiffres", 14, 700)
-UI.DefinirPolice("hud_covan", 20, 700, true)
+UI.DefinirPolice("hud_chiffres", 13, 700)
+UI.DefinirPolice("hud_covan", 19, 700, true)
 UI.DefinirPolice("hud_variation", 15, 700)
 UI.DefinirPolice("hud_munitions", 34, 700, true)
 UI.DefinirPolice("hud_munitions_petit", 16, 600)
 
-local MAT_DEGRADE_BAS = Material("gui/gradient_down")
-local MAT_DEGRADE_D = Material("vgui/gradient-r")
+local MAT_BAS = Material("gui/gradient_down")
+local MAT_HAUT = Material("gui/gradient_up")
+local MAT_D = Material("vgui/gradient-r")
+local MAT_G = Material("vgui/gradient-l")
 
 ---------------------------------------------------------------------------
 -- Éléments GMod / DarkRP remplacés
@@ -46,17 +53,45 @@ local function faimActive(ply)
 	return ply.getDarkRPVar and ply:getDarkRPVar("Energy") ~= nil
 end
 
-local EQUIPES_SANS_METIER = {}
-local function nomMetier(ply)
+local SANS_METIER = {}
+if TEAM_UNASSIGNED then SANS_METIER[TEAM_UNASSIGNED] = true end
+if TEAM_CONNECTING then SANS_METIER[TEAM_CONNECTING] = true end
+if TEAM_SPECTATOR then SANS_METIER[TEAM_SPECTATOR] = true end
+
+-- Métier, grade et faction du joueur (champs origine_* de jobs.lua)
+local function infosJob(ply)
 	local t = ply:Team()
-	if EQUIPES_SANS_METIER[t] then return nil end
+	if SANS_METIER[t] then return nil end
 	local nom = team.GetName(t)
 	if not nom or nom == "" or nom == "Unassigned" then return nil end
-	return nom
+	local job = RPExtraTeams and RPExtraTeams[t]
+	return nom, job and job.category, job and job.origine_grade
 end
-if TEAM_UNASSIGNED then EQUIPES_SANS_METIER[TEAM_UNASSIGNED] = true end
-if TEAM_CONNECTING then EQUIPES_SANS_METIER[TEAM_CONNECTING] = true end
-if TEAM_SPECTATOR then EQUIPES_SANS_METIER[TEAM_SPECTATOR] = true end
+
+---------------------------------------------------------------------------
+-- Couleurs (objets réutilisés)
+---------------------------------------------------------------------------
+local cFaction = Color(201, 164, 92)
+local cFactionSombre = Color(60, 45, 30)
+local cFactionVoile = Color(201, 164, 92, 60)
+local cTemp = Color(255, 255, 255)
+local cFondJauge = Color(8, 6, 5, 235)
+local cGraduation = Color(0, 0, 0, 110)
+local cReflet = Color(255, 255, 255, 55)
+local cOmbre = Color(0, 0, 0, 170)
+local cFondPlaque = Color(12, 9, 7, 200)
+local cMie = Color(236, 200, 140)
+local cPieceInt = Color(150, 112, 40)
+local cVariation = Color(255, 255, 255)
+local cFondPortrait = Color(10, 8, 6, 255)
+
+local function majCouleurFaction(ply)
+	local c = team.GetColor(ply:Team())
+	if not c or SANS_METIER[ply:Team()] then c = COL.Or end
+	cFaction.r, cFaction.g, cFaction.b = c.r, c.g, c.b
+	cFactionSombre.r, cFactionSombre.g, cFactionSombre.b = c.r * 0.28, c.g * 0.28, c.b * 0.28
+	cFactionVoile.r, cFactionVoile.g, cFactionVoile.b = c.r, c.g, c.b
+end
 
 ---------------------------------------------------------------------------
 -- Géométrie (coordonnées locales du bloc, recalculées si l'échelle change)
@@ -67,32 +102,45 @@ local function construireGeometrie(avecFaim)
 	local S = UI.S
 	G.avecFaim = avecFaim
 	G.w = S(CH.Largeur)
-	G.pad = S(12)
-	G.portrait = S(80)
-	G.px, G.py = G.pad, G.pad
-	G.tx = G.px + G.portrait + S(14)
-	G.sepY = G.py + G.portrait + S(10)
+	G.pad = S(14)
+	G.banniere = S(24)                 -- bandeau de faction en haut
+	G.rayon = S(44)                    -- portrait rond
+	G.cx, G.cy = G.pad + G.rayon, G.banniere + S(12) + G.rayon
+	G.tx = G.cx + G.rayon + S(18)
+	G.sepY = G.cy + G.rayon + S(12)
 	G.barreY = G.sepY + S(12)
-	G.ligne = S(21)
+	G.ligne = S(24)
+	G.bh = S(15)
 	G.nbBarres = avecFaim and 3 or 2
-	G.covanY = G.barreY + G.nbBarres * G.ligne + S(2)
-	G.h = G.covanY + S(32)
-	G.icone = S(14)
-	G.bx = G.pad + G.icone + S(10)
-	G.bw = G.w - G.bx - S(92)
-	G.bh = S(12)
-	G.vx = G.w - G.pad
+	G.plaqueY = G.barreY + G.nbBarres * G.ligne + S(4)
+	G.plaqueH = S(30)
+	G.h = G.plaqueY + G.plaqueH + S(10)
+	G.icone = S(15)
+	G.bx = G.pad + G.icone + S(12)
+	G.bw = G.w - G.bx - G.pad
 
-	-- Formes en cache
-	local c = S(6)
-	G.coins = {
-		UI.PolyLosange(0, 0, c), UI.PolyLosange(G.w, 0, c),
-		UI.PolyLosange(0, G.h, c), UI.PolyLosange(G.w, G.h, c),
+	-- Cadre : coins en équerre et losanges
+	local c, e = S(18), S(3)
+	G.equerre, G.epaisseur = c, e
+	G.losCoins = {
+		UI.PolyLosange(S(5), S(5), S(5)), UI.PolyLosange(G.w - S(5), S(5), S(5)),
+		UI.PolyLosange(S(5), G.h - S(5), S(5)), UI.PolyLosange(G.w - S(5), G.h - S(5), S(5)),
 	}
-	G.losangeHaut = UI.PolyLosange(G.w / 2, 0, S(5))
-	G.losangeSep = UI.PolyLosange(G.w / 2, G.sepY, S(4))
-	G.gemmeRace = UI.PolyLosange(G.tx + S(5), G.py + S(41), S(5))
-	G.pointJob = UI.PolyCercle(G.tx + S(5), G.py + S(62), S(3.5), 12)
+	G.losHaut = UI.PolyLosange(G.w / 2, G.banniere, S(6))
+	G.losHautInt = UI.PolyLosange(G.w / 2, G.banniere, S(3))
+	G.losSep = UI.PolyLosange(G.w / 2, G.sepY, S(5))
+	G.losSepInt = UI.PolyLosange(G.w / 2, G.sepY, S(2))
+
+	-- Portrait : anneaux
+	G.anneauExt = UI.PolyCercle(G.cx, G.cy, G.rayon + S(5), 40)
+	G.anneauMil = UI.PolyCercle(G.cx, G.cy, G.rayon + S(3), 40)
+	G.disque = UI.PolyCercle(G.cx, G.cy, G.rayon, 40)
+	-- Gemme de race sur l'anneau (en bas à droite)
+	local a = math.rad(45)
+	G.gx, G.gy = G.cx + math.cos(a) * (G.rayon + S(2)), G.cy + math.sin(a) * (G.rayon + S(2))
+	G.gemmeFond = UI.PolyLosange(G.gx, G.gy, S(10))
+	G.gemme = UI.PolyLosange(G.gx, G.gy, S(7))
+	G.gemmeReflet = UI.PolyLosange(G.gx - S(2), G.gy - S(2), S(2))
 
 	-- Icônes des jauges
 	G.icones = {}
@@ -117,16 +165,12 @@ local function construireGeometrie(avecFaim)
 			  { x = cx, y = y + d * 0.55 }, { x = cx - d * 0.45, y = y - d * 0.05 } },
 		}
 	end
-	do -- pain
-		local y = yLigne(3)
-		G.icones.faim = { x = cx - ic / 2, y = y - ic * 0.32, w = ic, h = ic * 0.64 }
-	end
+	G.icones.faim = { x = cx - ic / 2, y = yLigne(3) - ic * 0.32, w = ic, h = ic * 0.64 }
 	do -- pièce
-		local y = G.covanY + S(12)
-		G.pieceX = cx
-		G.icones.piece = UI.PolyCercle(cx, y, ic * 0.55, 20)
-		G.icones.pieceInt = UI.PolyCercle(cx, y, ic * 0.36, 20)
+		local y = G.plaqueY + G.plaqueH / 2
 		G.pieceY = y
+		G.icones.piece = UI.PolyCercle(cx, y, ic * 0.58, 20)
+		G.icones.pieceInt = UI.PolyCercle(cx, y, ic * 0.38, 20)
 	end
 	G.echelle = UI.Echelle()
 end
@@ -157,6 +201,8 @@ local function calculerDisposition()
 		end
 	end
 	dispo.x, dispo.y, dispo.k = math.floor(x), math.floor(y), k
+	-- Cercle du portrait en coordonnées écran (pour le masque rond)
+	dispo.disqueEcran = UI.PolyCercle(dispo.x + G.cx * k, dispo.y + G.cy * k, G.rayon * k, 40)
 end
 
 ---------------------------------------------------------------------------
@@ -176,7 +222,7 @@ local function majPortrait(ply)
 		portrait = vgui.Create("DModelPanel")
 		portrait:SetPaintedManually(true)
 		portrait:SetMouseInputEnabled(false)
-		portrait:SetFOV(30)
+		portrait:SetFOV(28)
 		portrait.LayoutEntity = function() end
 		signature = ""
 	end
@@ -191,19 +237,43 @@ local function majPortrait(ply)
 	ent.GetPlayerColor = function() return IsValid(LocalPlayer()) and LocalPlayer():GetPlayerColor() or Vector(1, 1, 1) end
 	local osTete = ent:LookupBone("ValveBiped.Bip01_Head1")
 	local tete = osTete and ent:GetBonePosition(osTete) or (ent:OBBCenter() + Vector(0, 0, ent:OBBMaxs().z * 0.35))
-	portrait:SetLookAt(tete - Vector(0, 0, 3))
-	portrait:SetCamPos(tete + Vector(32, 0, 1))
+	portrait:SetLookAt(tete - Vector(0, 0, 2))
+	portrait:SetCamPos(tete + Vector(30, 0, 1))
 	ent:SetEyeTarget(tete + Vector(40, 0, 0))
+end
+
+-- Portrait masqué en cercle (stencil)
+local function dessinerPortrait()
+	if not IsValid(portrait) or not dispo.disqueEcran then return end
+	local k = dispo.k
+	local d = math.floor(G.rayon * 2 * k)
+	portrait:SetPos(math.floor(dispo.x + (G.cx - G.rayon) * k), math.floor(dispo.y + (G.cy - G.rayon) * k))
+	portrait:SetSize(d, d)
+
+	render.ClearStencil()
+	render.SetStencilEnable(true)
+	render.SetStencilWriteMask(255)
+	render.SetStencilTestMask(255)
+	render.SetStencilReferenceValue(1)
+	render.SetStencilCompareFunction(STENCIL_ALWAYS)
+	render.SetStencilPassOperation(STENCIL_REPLACE)
+	render.SetStencilFailOperation(STENCIL_KEEP)
+	render.SetStencilZFailOperation(STENCIL_KEEP)
+	UI.DessinerPoly(dispo.disqueEcran, cFondPortrait)
+	render.SetStencilCompareFunction(STENCIL_EQUAL)
+	render.SetStencilPassOperation(STENCIL_KEEP)
+	portrait:PaintManual()
+	-- Ombre intérieure en bas du portrait
+	surface.SetMaterial(MAT_HAUT)
+	surface.SetDrawColor(0, 0, 0, 200)
+	surface.DrawTexturedRect(portrait:GetX(), portrait:GetY() + d * 0.55, d, d * 0.45)
+	render.SetStencilEnable(false)
 end
 
 ---------------------------------------------------------------------------
 -- Jauges avec traînée claire
 ---------------------------------------------------------------------------
 local traines = {}
-local couleurTemp = Color(255, 255, 255)
-local couleurFond = Color(10, 8, 6, 230)
-local couleurGraduation = Color(0, 0, 0, 90)
-local couleurReflet = Color(255, 255, 255, 45)
 
 local function traine(id, frac)
 	local t = traines[id]
@@ -223,33 +293,40 @@ local function traine(id, frac)
 	return t.valeur
 end
 
--- Couleur qui clignote en rouge sous le seuil (objet réutilisé, pas d'allocation)
 local function couleurAlerte(col, frac, alerte)
 	if not alerte or frac >= CH.SeuilAlerte then return col end
 	local a = math.abs(math.sin(CurTime() * 6))
-	couleurTemp.r = Lerp(a, col.r, COL.Alerte.r)
-	couleurTemp.g = Lerp(a, col.g, COL.Alerte.g)
-	couleurTemp.b = Lerp(a, col.b, COL.Alerte.b)
-	couleurTemp.a = 255
-	return couleurTemp
+	cTemp.r = Lerp(a, col.r, COL.Alerte.r)
+	cTemp.g = Lerp(a, col.g, COL.Alerte.g)
+	cTemp.b = Lerp(a, col.b, COL.Alerte.b)
+	cTemp.a = 255
+	return cTemp
 end
 
-local function jauge(y, frac, col, id, alerte)
-	local x, w, h = G.bx, G.bw, G.bh
+-- Jauge : fond creusé, traînée, remplissage, reflet, graduations, valeur au centre
+local function jauge(y, frac, col, id, alerte, texte)
+	local x, w, h, S = G.bx, G.bw, G.bh, UI.S
 	frac = math.Clamp(frac, 0, 1)
 	local t = traine(id, frac)
-	UI.Rect(x, y, w, h, couleurFond)
+	UI.Rect(x - 1, y - 1, w + 2, h + 2, COL.Bordure)
+	UI.Rect(x, y, w, h, cFondJauge)
 	if t > frac then UI.Rect(x, y, w * t, h, COL.Traine) end
 	local c = couleurAlerte(col, frac, alerte)
 	UI.Rect(x, y, w * frac, h, c)
-	-- Reflet sur la moitié haute
-	surface.SetMaterial(MAT_DEGRADE_BAS)
-	surface.SetDrawColor(couleurReflet)
-	surface.DrawTexturedRect(x, y, w * frac, h * 0.6)
-	-- Graduations tous les 25 %
-	surface.SetDrawColor(couleurGraduation)
-	for i = 1, 3 do surface.DrawRect(x + math.floor(w * i / 4), y + 1, 1, h - 2) end
-	UI.Contour(x - 1, y - 1, w + 2, h + 2, COL.Bordure, 1)
+	surface.SetMaterial(MAT_BAS)
+	surface.SetDrawColor(cReflet)
+	surface.DrawTexturedRect(x, y, w * frac, h * 0.55)
+	surface.SetMaterial(MAT_HAUT)
+	surface.SetDrawColor(0, 0, 0, 90)
+	surface.DrawTexturedRect(x, y + h * 0.5, w * frac, h * 0.5)
+	-- Bord lumineux au bout de la jauge
+	if frac > 0 and frac < 1 then
+		surface.SetDrawColor(255, 255, 255, 120)
+		surface.DrawRect(x + w * frac - 1, y, 1, h)
+	end
+	surface.SetDrawColor(cGraduation)
+	for i = 1, 9 do surface.DrawRect(x + math.floor(w * i / 10), y + h - S(4), 1, S(4)) end
+	UI.TexteOmbre(texte, "hud_chiffres", x + w / 2, y + h / 2, COL.Texte, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
 end
 
 ---------------------------------------------------------------------------
@@ -270,90 +347,133 @@ local function majCovan(argent)
 	if math.abs(covanAffiche - covanReel) < 1 then covanAffiche = covanReel end
 end
 
-local couleurVariation = Color(255, 255, 255)
+---------------------------------------------------------------------------
+-- Cadre
+---------------------------------------------------------------------------
+local function equerre(x, y, sx, sy)
+	local c, e = G.equerre, G.epaisseur
+	surface.DrawRect(sx > 0 and x or x - c, y, c, e)
+	surface.DrawRect(x, sy > 0 and y or y - c, e, c)
+end
+
+local function dessinerCadre(w, h)
+	local S = UI.S
+	-- Fond : bois sombre, lumière venant du haut, voile de la faction
+	UI.Rect(0, 0, w, h, COL.Fond)
+	surface.SetMaterial(MAT_BAS)
+	surface.SetDrawColor(COL.FondClair.r + 22, COL.FondClair.g + 18, COL.FondClair.b + 12, 110)
+	surface.DrawTexturedRect(0, 0, w, h * 0.65)
+	surface.SetMaterial(MAT_G)
+	surface.SetDrawColor(cFactionVoile.r, cFactionVoile.g, cFactionVoile.b, 28)
+	surface.DrawTexturedRect(0, 0, w * 0.6, h)
+	-- Fines stries horizontales (texture de bois)
+	surface.SetDrawColor(0, 0, 0, 22)
+	for yy = S(6), h - S(6), S(5) do surface.DrawRect(S(4), yy, w - S(8), 1) end
+
+	-- Bandeau de faction
+	surface.SetMaterial(MAT_D)
+	surface.SetDrawColor(cFaction.r, cFaction.g, cFaction.b, 170)
+	surface.DrawTexturedRect(S(3), S(3), w - S(6), G.banniere - S(3))
+	UI.Rect(S(3), G.banniere, w - S(6), 1, cFaction)
+
+	-- Bordures : extérieure sombre, filet de faction, filet doré intérieur
+	UI.Contour(0, 0, w, h, COL.Bordure, S(2))
+	UI.Contour(S(2), S(2), w - S(4), h - S(4), cFactionSombre, 1)
+	surface.SetDrawColor(COL.Or.r, COL.Or.g, COL.Or.b, 70)
+	surface.DrawOutlinedRect(S(5), S(5), w - S(10), h - S(10), 1)
+
+	-- Coins en équerre dorés + losanges de faction
+	surface.SetDrawColor(COL.Or)
+	equerre(S(1), S(1), 1, 1)
+	equerre(w - S(1) - G.epaisseur, S(1), -1, 1)
+	equerre(S(1), h - S(1) - G.epaisseur, 1, -1)
+	equerre(w - S(1) - G.epaisseur, h - S(1) - G.epaisseur, -1, -1)
+	for _, l in ipairs(G.losCoins) do UI.DessinerPoly(l, cFaction) end
+	UI.DessinerPoly(G.losHaut, COL.Or)
+	UI.DessinerPoly(G.losHautInt, cFaction)
+end
 
 ---------------------------------------------------------------------------
--- Dessin du bloc (coordonnées locales, réduites par la matrice si besoin)
+-- Bloc complet (coordonnées locales, réduites par la matrice si besoin)
 ---------------------------------------------------------------------------
-local couleurCadreRace = Color(255, 255, 255)
-local couleurFondPortrait = Color(14, 11, 8, 240)
-local couleurMie = Color(236, 200, 140)
-local couleurPieceInt = Color(150, 112, 40)
-
 local function dessinerBloc(ply)
 	local w, h, S = G.w, G.h, UI.S
 	local race = ORIGINE.RaceJoueur(ply)
 	local colRace = ORIGINE.CouleurRace(race)
+	local metier, categorie, grade = infosJob(ply)
 
-	-- Fond : bois sombre avec lumière venant du haut
-	UI.Rect(0, 0, w, h, COL.Fond)
-	surface.SetMaterial(MAT_DEGRADE_BAS)
-	surface.SetDrawColor(COL.FondClair.r + 20, COL.FondClair.g + 16, COL.FondClair.b + 10, 120)
-	surface.DrawTexturedRect(0, 0, w, h * 0.7)
+	dessinerCadre(w, h)
 
-	-- Liseré de la couleur de la rareté
-	surface.SetMaterial(MAT_DEGRADE_D)
-	surface.SetDrawColor(colRace.r, colRace.g, colRace.b, 200)
-	surface.DrawTexturedRect(S(4), S(4), w - S(8), S(2))
+	-- Bandeau : faction à gauche, grade à droite
+	local faction = categorie and string.upper(categorie) or "SANS ALLÉGEANCE"
+	UI.TexteOmbre(faction, "hud_faction", S(12), G.banniere / 2 + S(1), COL.Texte, TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER)
+	if grade then
+		UI.TexteOmbre("GRADE " .. grade, "hud_faction", w - S(12), G.banniere / 2 + S(1), COL.Texte, TEXT_ALIGN_RIGHT, TEXT_ALIGN_CENTER)
+	end
 
-	-- Cadre : bordure, filet doré, coins ornés
-	UI.Contour(0, 0, w, h, COL.Bordure, S(2))
-	surface.SetDrawColor(COL.Or.r, COL.Or.g, COL.Or.b, 80)
-	surface.DrawOutlinedRect(S(4), S(4), w - S(8), h - S(8), 1)
-	for _, c in ipairs(G.coins) do UI.DessinerPoly(c, COL.Or) end
-	UI.DessinerPoly(G.losangeHaut, colRace)
+	-- Anneaux du portrait (le portrait lui-même est dessiné ensuite, masqué en rond)
+	UI.DessinerPoly(G.anneauExt, COL.Or)
+	UI.DessinerPoly(G.anneauMil, cFaction)
+	UI.DessinerPoly(G.disque, cFondPortrait)
 
-	-- Portrait (médaillon)
-	local px, py, p = G.px, G.py, G.portrait
-	UI.Rect(px, py, p, p, couleurFondPortrait)
-	couleurCadreRace.r, couleurCadreRace.g, couleurCadreRace.b = colRace.r, colRace.g, colRace.b
-	UI.Contour(px - S(2), py - S(2), p + S(4), p + S(4), COL.Or, 1)
-	UI.Contour(px - 1, py - 1, p + 2, p + 2, couleurCadreRace, S(2))
+	-- Gemme de la race sur l'anneau
+	UI.DessinerPoly(G.gemmeFond, COL.Or)
+	UI.DessinerPoly(G.gemme, colRace)
+	UI.DessinerPoly(G.gemmeReflet, cReflet)
 
 	-- Identité
-	local tx = G.tx
-	UI.TexteOmbre(ORIGINE.NomComplet(ply), "hud_nom", tx, py + S(4), COL.Texte)
+	local tx, ty = G.tx, G.cy - G.rayon + S(2)
+	UI.TexteOmbre(ORIGINE.NomComplet(ply), "hud_nom", tx, ty, COL.Texte)
+	surface.SetMaterial(MAT_D)
+	surface.SetDrawColor(cFaction.r, cFaction.g, cFaction.b, 150)
+	surface.DrawTexturedRect(tx, ty + S(30), w - tx - S(14), 1)
 	if race then
-		UI.DessinerPoly(G.gemmeRace, colRace)
-		UI.Texte(ORIGINE.NomRace(race), "hud_texte", tx + S(16), py + S(41), colRace, TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER)
+		UI.TexteOmbre(ORIGINE.NomRace(race), "hud_texte", tx, ty + S(38), colRace)
 	end
-	local metier = nomMetier(ply)
 	if metier then
-		UI.DessinerPoly(G.pointJob, team.GetColor(ply:Team()))
-		UI.Texte(metier, "hud_texte", tx + S(16), py + S(62), COL.TexteSombre, TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER)
+		UI.TexteOmbre(metier, "hud_texte", tx, ty + S(60), cFaction)
 	end
 
-	UI.SeparateurOrne(S(12), G.sepY, w - S(24), G.losangeSep)
+	-- Séparateur orné
+	surface.SetMaterial(MAT_G)
+	surface.SetDrawColor(COL.Or.r, COL.Or.g, COL.Or.b, 140)
+	surface.DrawTexturedRect(S(14), G.sepY, w / 2 - S(20), 1)
+	surface.SetMaterial(MAT_D)
+	surface.DrawTexturedRect(w / 2 + S(6), G.sepY, w / 2 - S(20), 1)
+	UI.DessinerPoly(G.losSep, COL.Or)
+	UI.DessinerPoly(G.losSepInt, cFaction)
 
 	-- Jauges
-	local y, vx, bh = G.barreY, G.vx, G.bh
+	local y = G.barreY
 	local pv, pvmax = math.max(0, ply:Health()), math.max(1, ply:GetMaxHealth())
 	for _, poly in ipairs(G.icones.pv) do UI.DessinerPoly(poly, COL.PV) end
-	jauge(y, pv / pvmax, COL.PV, "pv", true)
-	UI.TexteOmbre(pv .. " / " .. pvmax, "hud_chiffres", vx, y + bh / 2, COL.Texte, TEXT_ALIGN_RIGHT, TEXT_ALIGN_CENTER)
+	jauge(y, pv / pvmax, COL.PV, "pv", true, pv .. " / " .. pvmax)
 
 	y = y + G.ligne
 	local armax = ply:GetMaxArmor()
 	for _, poly in ipairs(G.icones.armure) do UI.DessinerPoly(poly, COL.Armure) end
 	for _, poly in ipairs(G.icones.armureInt) do UI.DessinerPoly(poly, COL.Fond) end
-	jauge(y, armax > 0 and ply:Armor() / armax or 0, COL.Armure, "armure", false)
-	UI.TexteOmbre(ply:Armor() .. " / " .. armax, "hud_chiffres", vx, y + bh / 2, COL.Texte, TEXT_ALIGN_RIGHT, TEXT_ALIGN_CENTER)
+	jauge(y, armax > 0 and ply:Armor() / armax or 0, COL.Armure, "armure", false, ply:Armor() .. " / " .. armax)
 
 	if G.avecFaim then
 		y = y + G.ligne
 		local faim = ply:getDarkRPVar("Energy") or 0
 		local ic = G.icones.faim
 		draw.RoundedBox(math.floor(ic.h / 2), ic.x, ic.y, ic.w, ic.h, COL.Faim)
-		UI.Rect(ic.x + ic.w * 0.25, ic.y + ic.h * 0.2, 1, ic.h * 0.45, couleurMie)
-		UI.Rect(ic.x + ic.w * 0.5, ic.y + ic.h * 0.2, 1, ic.h * 0.45, couleurMie)
-		UI.Rect(ic.x + ic.w * 0.75, ic.y + ic.h * 0.2, 1, ic.h * 0.45, couleurMie)
-		jauge(y, faim / 100, COL.Faim, "faim", true)
-		UI.TexteOmbre(math.Round(faim) .. " %", "hud_chiffres", vx, y + bh / 2, COL.Texte, TEXT_ALIGN_RIGHT, TEXT_ALIGN_CENTER)
+		for i = 1, 3 do UI.Rect(ic.x + ic.w * i / 4, ic.y + ic.h * 0.2, 1, ic.h * 0.45, cMie) end
+		jauge(y, faim / 100, COL.Faim, "faim", true, math.Round(faim) .. " %")
 	end
 
-	-- Covan
+	-- Plaque des Covan
+	local py = G.plaqueY
+	UI.Rect(S(10), py, w - S(20), G.plaqueH, cFondPlaque)
+	UI.Contour(S(10), py, w - S(20), G.plaqueH, cFactionSombre, 1)
+	surface.SetMaterial(MAT_D)
+	surface.SetDrawColor(COL.Or.r, COL.Or.g, COL.Or.b, 25)
+	surface.DrawTexturedRect(S(10), py, w - S(20), G.plaqueH)
 	UI.DessinerPoly(G.icones.piece, COL.Or)
-	UI.DessinerPoly(G.icones.pieceInt, couleurPieceInt)
+	UI.DessinerPoly(G.icones.pieceInt, cPieceInt)
+
 	local argent = ply.getDarkRPVar and ply:getDarkRPVar("money") or 0
 	majCovan(argent)
 	local texte = ORIGINE.FormaterCovan(math.Round(covanAffiche))
@@ -361,12 +481,10 @@ local function dessinerBloc(ply)
 	if CurTime() < finVariation and variation ~= 0 then
 		local reste = (finVariation - CurTime()) / CH.DureeVariationCovan
 		local base = variation > 0 and COL.Succes or COL.Alerte
-		couleurVariation.r, couleurVariation.g, couleurVariation.b = base.r, base.g, base.b
-		couleurVariation.a = math.Clamp(reste * 2, 0, 1) * 255
-		surface.SetFont(UI.Police("hud_covan"))
-		local tw = surface.GetTextSize(texte)
+		cVariation.r, cVariation.g, cVariation.b = base.r, base.g, base.b
+		cVariation.a = math.Clamp(reste * 2, 0, 1) * 255
 		UI.TexteOmbre((variation > 0 and "+" or "-") .. ORIGINE.FormaterNombre(math.abs(variation)), "hud_variation",
-			G.bx + tw + S(10), G.pieceY - (1 - reste) * S(6), couleurVariation, TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER)
+			w - S(20), G.pieceY - (1 - reste) * S(6), cVariation, TEXT_ALIGN_RIGHT, TEXT_ALIGN_CENTER)
 	end
 end
 
@@ -387,19 +505,19 @@ local function dessinerMunitions(ply)
 	local lw, lh = UI.S(200), UI.S(secondaire > 0 and 86 or 66)
 	local x, y = ScrW() - lw - UI.S(24), ScrH() - lh - UI.S(24)
 	UI.Cadre(x, y, lw, lh, COL.Fond)
-	local cy = y + UI.S(33)
+	UI.Rect(x + UI.S(3), y + UI.S(3), lw - UI.S(6), UI.S(3), cFaction)
+	local cy = y + UI.S(35)
 	if chargeur >= 0 then
 		surface.SetFont(UI.Police("hud_munitions"))
 		local cw = surface.GetTextSize(tostring(chargeur))
-		local total = cw + UI.S(8) + UI.S(60)
-		local x0 = x + lw / 2 - total / 2
+		local x0 = x + lw / 2 - (cw + UI.S(68)) / 2
 		UI.TexteOmbre(tostring(chargeur), "hud_munitions", x0, cy, chargeur == 0 and COL.Alerte or COL.Texte, TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER)
 		UI.TexteOmbre("/ " .. reserve, "hud_munitions_petit", x0 + cw + UI.S(8), cy + UI.S(6), COL.TexteSombre, TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER)
 	else
 		UI.TexteOmbre(tostring(reserve), "hud_munitions", x + lw / 2, cy, COL.Texte, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
 	end
 	if secondaire > 0 then
-		UI.Texte("Secondaire : " .. secondaire, "hud_munitions_petit", x + lw / 2, y + UI.S(66), COL.TexteSombre, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
+		UI.Texte("Secondaire : " .. secondaire, "hud_munitions_petit", x + lw / 2, y + UI.S(68), COL.TexteSombre, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
 	end
 end
 
@@ -422,6 +540,7 @@ hook.Add("HUDPaint", "origine_hud", function()
 		calculerDisposition()
 		majPortrait(ply)
 	end
+	majCouleurFaction(ply)
 
 	local k = dispo.k
 	vecPos.x, vecPos.y = dispo.x, dispo.y
@@ -437,14 +556,7 @@ hook.Add("HUDPaint", "origine_hud", function()
 	render.PopFilterMin()
 	render.PopFilterMag()
 
-	-- Le portrait est un panneau : on le place aux coordonnées écran réelles
-	if IsValid(portrait) then
-		local p = G.portrait
-		portrait:SetPos(dispo.x + math.floor(G.px * k), dispo.y + math.floor(G.py * k))
-		portrait:SetSize(math.floor(p * k), math.floor(p * k))
-		portrait:PaintManual()
-	end
-
+	dessinerPortrait()
 	dessinerMunitions(ply)
 end)
 

@@ -511,6 +511,28 @@ ACTIONS.nom = function(staff, sid, slot, prenom, nom)
 	end)
 end
 
+-- Changer le job d'un personnage (sans vote, sans limite de places : décision du staff)
+ACTIONS.job = function(staff, sid, slot, commande)
+	local t = ORIGINE.EquipeDeCommande(commande)
+	if not t or t == ORIGINE.EquipeSelection then return ORIGINE.Notifier(staff, "Job inconnu.", "erreur") end
+	S.Donnees(sid, function(_, persos, cible)
+		local p = persos and persos[slot]
+		if not p then return ORIGINE.Notifier(staff, "Aucun personnage sur ce slot.", "erreur") end
+		local avant = p.job
+		p.job = commande
+		ORIGINE.EcrirePerso(p)
+		if cible and cible.OrigineSlot == slot and cible:Team() ~= t and cible.changeTeam then
+			cible:changeTeam(t, true, true)
+			timer.Simple(0, function() if IsValid(cible) then ORIGINE.AppliquerRace(cible) end end)
+		elseif cible and ORIGINE.EnMenu(cible) then
+			ORIGINE.EnvoyerMenu(cible)
+		end
+		H.Ajouter({ type = "job", staff = staff, cible_sid = sid, cible_slot = slot, cible_nom = nomPerso(p),
+			avant = { job = avant and ORIGINE.NomJob(avant) or nil }, apres = { job = ORIGINE.NomJob(commande) } })
+		succes(staff, sid)
+	end)
+end
+
 ACTIONS.forcer = function(staff, sid, slot)
 	local cible = ORIGINE.JoueurParSid(sid)
 	if not cible or not cible.OrigineDonneesChargees then
