@@ -63,6 +63,47 @@ hook.Add("playerCanChangeTeam", "origine_jobs", function(ply, t, force)
 end)
 
 ---------------------------------------------------------------------------
+-- Armes : uniquement C.Loadout (DarkRP ne donne plus rien : ni stunstick,
+-- ni clés, ni armes de job ou d'admin)
+---------------------------------------------------------------------------
+hook.Add("PlayerLoadout", "origine_loadout", function(ply)
+	if not C.LoadoutStrict or ORIGINE.EnMenu(ply) then return end
+	for _, classe in ipairs(C.Loadout) do
+		if not ply:HasWeapon(classe) then ply:Give(classe) end
+	end
+	return true -- empêche le loadout de DarkRP
+end)
+
+-- Filet de sécurité : DarkRP peut donner les armes du job au changement de job
+-- sans passer par PlayerLoadout. On retire celles qui ne sont pas dans C.Loadout.
+local function retirerArmesDarkRP(ply)
+	if not C.LoadoutStrict or not IsValid(ply) or ORIGINE.EnMenu(ply) then return end
+	local garder = {}
+	for _, c in ipairs(C.Loadout) do garder[c] = true end
+	local aRetirer = {}
+	local job = RPExtraTeams and RPExtraTeams[ply:Team()]
+	for _, c in ipairs(job and job.weapons or {}) do aRetirer[c] = true end
+	local cfg = GAMEMODE and GAMEMODE.Config or {}
+	for _, c in ipairs(cfg.DefaultWeapons or {}) do aRetirer[c] = true end
+	for _, c in ipairs(cfg.AdminWeapons or {}) do aRetirer[c] = true end
+	for _, c in ipairs({ "stunstick", "weapon_stunstick", "arrest_stick", "unarrest_stick", "door_ram", "keys", "pocket", "weaponchecker", "weapon_keypadchecker" }) do
+		aRetirer[c] = true
+	end
+	for c in pairs(aRetirer) do
+		if not garder[c] and ply:HasWeapon(c) then ply:StripWeapon(c) end
+	end
+	for c in pairs(garder) do
+		if not ply:HasWeapon(c) then ply:Give(c) end
+	end
+end
+hook.Add("OnPlayerChangedTeam", "origine_loadout", function(ply)
+	timer.Simple(0.2, function() retirerArmesDarkRP(ply) end)
+end)
+hook.Add("PlayerSpawn", "origine_loadout", function(ply)
+	timer.Simple(0.2, function() retirerArmesDarkRP(ply) end)
+end)
+
+---------------------------------------------------------------------------
 -- Pendant le menu : pas de salaire, faim en pause
 ---------------------------------------------------------------------------
 hook.Add("playerGetSalary", "origine_menu", function(ply)

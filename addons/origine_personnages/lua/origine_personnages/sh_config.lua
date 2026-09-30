@@ -115,6 +115,13 @@ C.CommandesPolice = {
 	"jailpos", "setjailpos", "addjailpos", "givelicense", "requestlicense",
 }
 
+-- Armes données à l'apparition et au changement de job, et RIEN d'autre :
+-- les armes des jobs DarkRP, les armes par défaut et les armes admin de DarkRP sont ignorées.
+-- (Les SWEPs de race et les armes sauvegardées du personnage sont ajoutés ensuite.)
+-- Mettre LoadoutStrict = false pour laisser DarkRP donner ses armes.
+C.LoadoutStrict = true
+C.Loadout = { "weapon_physgun", "gmod_tool", "weapon_physcannon", "origine_mains", "origine_sacoche" }
+
 -- SWEP sélectionné à chaque apparition (mains vides, bras le long du corps). "" = aucun
 C.ArmeAuSpawn = "origine_mains"
 
