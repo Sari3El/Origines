@@ -355,6 +355,10 @@ end)
 local function covan(n) return ORIGINE.FormaterCovan(tonumber(n) or 0) end
 local function nomObjet(t) return istable(t) and (t.name or t.entity or t.ent) or tostring(t) end
 
+hook.Add("origine_Nourri", "origine_logs", function(ply, classe, source)
+	local cfg = ORIGINE.ConfigInv.Nourritures[classe]
+	L.Ajouter("inventaire", ply, nil, "mange : " .. (cfg and cfg.Nom or classe) .. (source ~= "" and (" de " .. source) or ""))
+end)
 hook.Add("origine_CovanPerdusMort", "origine_logs", function(ply, montant) L.Ajouter("economie", ply, nil, "perd " .. covan(montant) .. " en mourant", { montant = montant }) end)
 hook.Add("playerDroppedMoney", "origine_logs", function(ply, montant) L.Ajouter("economie", ply, nil, "jette " .. covan(montant), { montant = montant }) end)
 hook.Add("playerPickedUpMoney", "origine_logs", function(ply, montant) L.Ajouter("economie", ply, nil, "ramasse " .. covan(montant), { montant = montant }) end)
@@ -377,13 +381,14 @@ end)
 ---------------------------------------------------------------------------
 local ACTIONS_INV = {
 	ranger = "range", equiper = "équipe depuis la sacoche", deposer = "dépose", detruire = "détruit",
-	sac_cree = "meurt : sac de mort créé", sac_ouvert = "fouille un sac de mort", sac_equiper = "équipe depuis un sac",
+	sac_cree = "meurt : sac de mort créé", sac_covan = "prend les Covan d'un sac", sac_ouvert = "fouille un sac de mort", sac_equiper = "équipe depuis un sac",
 	sac_deposer = "sort d'un sac", sac_detruire = "détruit depuis un sac", sac_tout = "transfère tout un sac",
 }
 hook.Add("origine_InvAction", "origine_logs", function(ply, action, objet, extra)
 	local texte = ACTIONS_INV[action] or action
 	if objet then texte = texte .. " " .. ORIGINE.Inv.NomObjet(objet) .. " (" .. tostring(objet.classe) .. ")" end
-	if extra and extra.objets then texte = texte .. " — " .. extra.objets .. " objet(s)" end
+	if extra and extra.objets and extra.objets > 0 then texte = texte .. " — " .. extra.objets .. " objet(s)" end
+	if extra and extra.covan and extra.covan > 0 then texte = texte .. " — " .. covan(extra.covan) end
 	if extra and extra.sac and extra.sac ~= "" then texte = texte .. " de " .. extra.sac end
 	L.Ajouter("inventaire", ply, nil, texte, extra)
 end)

@@ -13,7 +13,7 @@ end
 local DOSSIER = "origine_inventaire/"
 local PARTAGES = { "sh_config.lua", "sh_entites.lua", "sh_inventaire.lua" }
 local SERVEUR = { "sv_inventaire.lua", "sv_sac.lua" }
-local CLIENT_ = { "cl_inventaire.lua", "cl_sac.lua" }
+local CLIENT_ = { "cl_inventaire.lua", "cl_sac.lua", "cl_nourriture.lua" }
 
 for _, f in ipairs(PARTAGES) do
 	if SERVER then AddCSLuaFile(DOSSIER .. f) end

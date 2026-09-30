@@ -79,6 +79,16 @@ function I.Compter(cases)
 	return total
 end
 
+-- Le joueur peut-il manger cette nourriture ? (faction de son job)
+function I.PeutManger(ply, classe)
+	local cfg = CI.Nourritures[classe]
+	if not cfg then return false end
+	local job = RPExtraTeams and RPExtraTeams[ply:Team()]
+	local dansListe = job ~= nil and ORIGINE.DansListe(cfg.Factions, job.origine_faction)
+	if cfg.Mode == "seulement" then return dansListe end
+	return not dansListe
+end
+
 -- Nom d'affichage d'un objet
 function I.NomObjet(objet)
 	if objet.arme then

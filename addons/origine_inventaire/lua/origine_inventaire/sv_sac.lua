@@ -22,62 +22,108 @@ end
 hook.Add("DarkRPFinishedLoading", "origine_sac", reglerMortDarkRP)
 hook.Add("Initialize", "origine_sac", reglerMortDarkRP)
 
--- À la mort, une partie des Covan portés tombe au sol (CovanPerdusMort)
-hook.Add("DoPlayerDeath", "origine_covan_mort", function(ply)
-	if not ORIGINE.PersoActuel(ply) or not ply.getDarkRPVar or not ply.addMoney then return end
-	local argent = ply:getDarkRPVar("money") or 0
-	local perdu = math.floor(argent * (CI.CovanPerdusMort or 0))
-	if perdu <= 0 then return end
-	ply:addMoney(-perdu)
-	local pos = ply:GetPos() + Vector(0, 0, 12)
-	if DarkRP and DarkRP.createMoneyBag then
-		DarkRP.createMoneyBag(pos, perdu)
-	else
-		local sac = ents.Create("spawned_money")
-		if IsValid(sac) then
-			sac:SetPos(pos)
-			sac:Spawn()
-			if sac.Setamount then sac:Setamount(perdu) end
-		end
-	end
-	hook.Run("origine_CovanPerdusMort", ply, perdu)
-end)
-
-function I.CreerSac(pos, cases, nom)
+function I.CreerSac(pos, cases, nom, covan)
 	local sac = ents.Create("origine_sac_mort")
 	if not IsValid(sac) then return nil end
-	sac.Contenu = cases
+	sac.Contenu = cases or {}
+	sac.Covan = covan or 0
 	sac:SetPos(pos + Vector(0, 0, 16))
 	sac:Spawn()
 	sac:SetNW2String("origine_sac_nom", nom or "")
+	sac:SetNW2Int("origine_sac_covan", sac.Covan)
 	return sac
 end
 
-hook.Add("DoPlayerDeath", "origine_sac", function(ply)
-	if not CI.Sac.Actif or not ORIGINE.PersoActuel(ply) then return end
-	local cases = I.DuJoueur(ply)
-	local contenu = {}
-	for _, c in ipairs(cases or {}) do contenu[#contenu + 1] = table.Copy(c) end
+local function tasDeCovan(pos, montant)
+	if DarkRP and DarkRP.createMoneyBag then return DarkRP.createMoneyBag(pos, montant) end
+	local tas = ents.Create("spawned_money")
+	if IsValid(tas) then
+		tas:SetPos(pos)
+		tas:Spawn()
+		if tas.Setamount then tas:Setamount(montant) end
+	end
+end
 
-	local exclues = ORIGINE.ArmesExcluesPour(ply)
-	for _, w in ipairs(ply:GetWeapons()) do
-		local c = w:GetClass()
-		if not exclues[c] then
-			contenu[#contenu + 1] = { classe = c, arme = c, modele = w:GetWeaponWorldModel(), n = 1 }
-			ply:StripWeapon(c)
+-- À la mort : sac (Covan perdus + inventaire si Sac.Actif) et crâne
+hook.Add("DoPlayerDeath", "origine_sac", function(ply)
+	if not ORIGINE.PersoActuel(ply) then return end
+	local nom = ORIGINE.NomComplet(ply)
+	local pos = ply:GetPos()
+
+	-- Covan perdus (CovanPerdusMort)
+	local perdu = 0
+	if ply.getDarkRPVar and ply.addMoney then
+		perdu = math.floor((ply:getDarkRPVar("money") or 0) * (CI.CovanPerdusMort or 0))
+		if perdu > 0 then
+			ply:addMoney(-perdu)
+			hook.Run("origine_CovanPerdusMort", ply, perdu)
 		end
 	end
 
-	if cases then
-		for k in pairs(cases) do cases[k] = nil end
-		I.Modifie(ply)
-		I.SauvegarderMaintenant(ply)
+	-- Inventaire et armes portées (seulement si Sac.Actif)
+	local contenu = {}
+	if CI.Sac.Actif then
+		local cases = I.DuJoueur(ply)
+		for _, c in ipairs(cases or {}) do contenu[#contenu + 1] = table.Copy(c) end
+		local exclues = ORIGINE.ArmesExcluesPour(ply)
+		for _, w in ipairs(ply:GetWeapons()) do
+			local c = w:GetClass()
+			if not exclues[c] then
+				contenu[#contenu + 1] = { classe = c, arme = c, modele = w:GetWeaponWorldModel(), n = 1 }
+				ply:StripWeapon(c)
+			end
+		end
+		if cases then
+			for k in pairs(cases) do cases[k] = nil end
+			I.Modifie(ply)
+			I.SauvegarderMaintenant(ply)
+		end
 	end
-	if #contenu > 0 then
-		I.CreerSac(ply:GetPos(), contenu, ORIGINE.NomComplet(ply))
-		hook.Run("origine_InvAction", ply, "sac_cree", nil, { objets = I.Compter(contenu) })
+
+	local covanSac = CI.Sac.CovanDansSac and perdu or 0
+	if perdu > 0 and not CI.Sac.CovanDansSac then tasDeCovan(pos + Vector(0, 0, 12), perdu) end
+	if #contenu > 0 or covanSac > 0 then
+		I.CreerSac(pos, contenu, nom, covanSac)
+		hook.Run("origine_InvAction", ply, "sac_cree", nil, { objets = I.Compter(contenu), covan = covanSac })
+	end
+
+	-- Crâne : nourriture des créatures de la nuit
+	if CI.Crane.Actif then
+		local crane = ents.Create("origine_crane")
+		if IsValid(crane) then
+			crane:SetPos(pos + Vector(math.random(-12, 12), math.random(-12, 12), 20))
+			crane:Spawn()
+			crane:SetNW2String("origine_nourriture_nom", nom)
+		end
 	end
 end)
+
+-- Prendre les Covan du sac (touche E)
+function I.PrendreCovanSac(ply, sac)
+	local montant = sac.Covan or 0
+	if montant <= 0 or not ply.addMoney then return false end
+	sac.Covan = 0
+	sac:SetNW2Int("origine_sac_covan", 0)
+	ply:addMoney(montant)
+	ORIGINE.Notifier(ply, "Vous prenez " .. ORIGINE.FormaterCovan(montant) .. ".", "succes")
+	ply:EmitSound("items/ammopickup.wav", 60, 110)
+	hook.Run("origine_InvAction", ply, "sac_covan", nil, { covan = montant, sac = sac:GetNW2String("origine_sac_nom", "") })
+	return true
+end
+
+-- Manger une nourriture (crâne, pastèque…)
+function I.Manger(ply, ent)
+	local cfg = CI.Nourritures[ent:GetClass()]
+	if not cfg then return end
+	if (cfg.PV or 0) > 0 then ply:SetHealth(math.min(ply:GetMaxHealth(), ply:Health() + cfg.PV)) end
+	if (cfg.Faim or 0) > 0 and ply.setSelfDarkRPVar and ply:getDarkRPVar("Energy") then
+		ply:setSelfDarkRPVar("Energy", math.min(100, ply:getDarkRPVar("Energy") + cfg.Faim))
+	end
+	if cfg.Son and cfg.Son ~= "" then ply:EmitSound(cfg.Son, 70, 100) end
+	hook.Run("origine_Nourri", ply, ent:GetClass(), ent:GetNW2String("origine_nourriture_nom", ""))
+	ply:SetNW2Entity("origine_mange", NULL)
+	ent:Remove()
+end
 
 ---------------------------------------------------------------------------
 -- Fouille : fenêtre partagée entre tous ceux qui l'ont ouverte

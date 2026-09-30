@@ -25,11 +25,19 @@ if SERVER then
 		if IsValid(phys) then phys:Wake() end
 		self.Contenu = self.Contenu or {}
 		self.Spectateurs = {}
-		self.Fin = CurTime() + (cfg and cfg.Duree or 600)
+		self.Fin = CurTime() + (cfg and cfg.Duree or 30)
+		self:SetNW2Float("origine_fin", self.Fin)
 	end
 
 	function ENT:Use(ply)
-		if ORIGINE and ORIGINE.Inv then ORIGINE.Inv.OuvrirSac(ply, self) end
+		if not ORIGINE or not ORIGINE.Inv or not IsValid(ply) or not ply:IsPlayer() then return end
+		if not ORIGINE.PersoActuel(ply) or ply:GetPos():Distance(self:GetPos()) > ORIGINE.ConfigInv.Sac.Portee then return end
+		ORIGINE.Inv.PrendreCovanSac(ply, self)
+		if #(self.Contenu or {}) == 0 then
+			self:Remove() -- plus rien dedans
+			return
+		end
+		ORIGINE.Inv.OuvrirSac(ply, self)
 	end
 
 	function ENT:Think()
@@ -64,8 +72,13 @@ else
 		local ang = Angle(0, ply:EyeAngles().y - 90, 90)
 		cam.Start3D2D(pos, ang, 0.08)
 			local nom = self:GetNW2String("origine_sac_nom", "")
+			local covan = self:GetNW2Int("origine_sac_covan", 0)
+			local reste = math.max(0, math.ceil(self:GetNW2Float("origine_fin", 0) - CurTime()))
 			UI.TexteOmbre(nom ~= "" and ("Sac de " .. nom) or "Sac", "sous_titre", 0, 0, UI.C.Or, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
-			UI.TexteOmbre("E pour fouiller", "texte", 0, 34, UI.C.Texte, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
+			if covan > 0 then
+				UI.TexteOmbre(ORIGINE.FormaterCovan(covan), "texte_gras", 0, 34, UI.C.Or, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
+			end
+			UI.TexteOmbre("E pour prendre  ·  " .. reste .. " s", "texte", 0, covan > 0 and 62 or 34, UI.C.Texte, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
 		cam.End3D2D()
 	end
 end
