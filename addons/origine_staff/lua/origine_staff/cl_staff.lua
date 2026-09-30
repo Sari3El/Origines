@@ -116,7 +116,9 @@ function S.Ouvrir()
 	local bJoueurs = UI.Bouton(onglets, "Joueurs", function() S.OngletJoueurs() end)
 	bJoueurs:Dock(LEFT) bJoueurs:SetWide(UI.S(200)) bJoueurs:DockMargin(0, 0, UI.S(8), 0)
 	local bLogs = UI.Bouton(onglets, "Logs", function() S.OngletLogs() end)
-	bLogs:Dock(LEFT) bLogs:SetWide(UI.S(200))
+	bLogs:Dock(LEFT) bLogs:SetWide(UI.S(200)) bLogs:DockMargin(0, 0, UI.S(8), 0)
+	local bServeur = UI.Bouton(onglets, "Serveur", function() S.OngletServeur() end)
+	bServeur:Dock(LEFT) bServeur:SetWide(UI.S(200))
 
 	S.OngletJoueurs()
 end
@@ -346,12 +348,6 @@ function S.AfficherFiche(fiche)
 				if n ~= 0 then action("rerolls", sid, 0, "", "", n) end
 			end)
 		end)
-		r:Ajouter("Rerolls à tous", function()
-			UI.Demander("Rerolls pour tous les joueurs connectés", { { libelle = "Nombre de points (event)", valeur = "1" } }, function(v)
-				local n = math.floor(tonumber(v[1]) or 0)
-				if n ~= 0 then action("rerolls_tous", sid, 0, "", "", n) end
-			end)
-		end)
 		local debloque = c.event_debloque == 1
 		r:Ajouter(debloque and "Verrouiller EVENT" or "Débloquer EVENT", function()
 			if debloque then
@@ -499,6 +495,53 @@ function S.AfficherHistorique(entrees)
 		end
 		ligne.DoClick = function() detailHistorique(e) end
 	end
+end
+
+---------------------------------------------------------------------------
+-- Onglet Serveur : actions sur tous les joueurs connectés
+---------------------------------------------------------------------------
+function S.OngletServeur()
+	local corps = S.Corps
+	corps:Clear()
+	S.Onglet = "serveur"
+	local pan = UI.StyliserScroll(vgui.Create("DScrollPanel", corps))
+	pan:Dock(FILL)
+
+	titreSection(pan, "Serveur")
+	lignesTexte(pan, {
+		{ { "Ces actions s'appliquent à tous les joueurs connectés (" .. player.GetCount() .. " en ce moment).", COL.TexteSombre } },
+	})
+
+	titreSection(pan, "Points de reroll")
+	local r1 = rangeeBoutons(pan)
+	r1:Ajouter("Rerolls à tous", function()
+		UI.Demander("Rerolls pour tous les joueurs connectés", { { libelle = "Nombre de points (négatif pour retirer)", valeur = "1" } }, function(v)
+			local n = math.floor(tonumber(v[1]) or 0)
+			if n == 0 then return end
+			UI.Confirmer("Rerolls à tous", (n > 0 and "Donner " or "Retirer ") .. math.abs(n) .. " point(s) de reroll à tous les joueurs connectés ?", function()
+				action("rerolls_tous", "", 0, "", "", n)
+			end)
+		end)
+	end, 220)
+
+	titreSection(pan, "Slot EVENT")
+	lignesTexte(pan, {
+		{ { "Débloque le slot EVENT de tous les joueurs connectés avec la race choisie, ou le verrouille.", COL.TexteSombre } },
+		{ { "Changer la race modifie aussi les personnages EVENT déjà créés. Verrouiller renvoie au menu ceux qui jouent dessus.", COL.TexteSombre } },
+	})
+	local r2 = rangeeBoutons(pan)
+	r2:Ajouter("Débloquer pour tous", function()
+		choisirRace("Race du slot EVENT (tous les joueurs)", function(id)
+			UI.Confirmer("Slot EVENT", "Débloquer le slot EVENT de tous les joueurs connectés en " .. ORIGINE.NomRace(id) .. " ?", function()
+				action("event_tous", "", 0, "1", id)
+			end)
+		end)
+	end, 220)
+	r2:Ajouter("Verrouiller pour tous", function()
+		UI.Confirmer("Slot EVENT", "Verrouiller le slot EVENT de tous les joueurs connectés ? Leurs données sont gardées.", function()
+			action("event_tous", "", 0, "0", "")
+		end, "Verrouiller")
+	end, 220)
 end
 
 ---------------------------------------------------------------------------

@@ -361,7 +361,7 @@ end
 ---------------------------------------------------------------------------
 -- Slot EVENT : débloquer / verrouiller, fixer la race
 ---------------------------------------------------------------------------
-function S.Event(staff, sid, debloque, race)
+function S.Event(staff, sid, debloque, race, silencieux)
 	S.Donnees(sid, function(compte, persos, cible)
 		if not compte then return ORIGINE.Notifier(staff, "Ce joueur ne s'est jamais connecté.", "erreur") end
 		if race ~= "" and not ORIGINE.Race(race) then return ORIGINE.Notifier(staff, "Race inconnue.", "erreur") end
@@ -382,6 +382,7 @@ function S.Event(staff, sid, debloque, race)
 				rafraichirJoueur(cible, ORIGINE.SLOT_EVENT)
 			end
 		end
+		if silencieux then return end
 		H.Ajouter({
 			type = "event", staff = staff, cible_sid = sid, cible_slot = ORIGINE.SLOT_EVENT,
 			cible_nom = p and nomPerso(p) or compte.nom_steam, avant = avant,
@@ -468,6 +469,24 @@ ACTIONS.rerolls_tous = function(staff, sid, _, _, _, nombre)
 	H.Ajouter({ type = "rerolls_tous", staff = staff, apres = { nombre = nombre, joueurs = n } })
 	ORIGINE.Notifier(staff, nombre .. " point(s) donné(s) à " .. n .. " joueur(s).", "succes")
 	if estSteamID64(sid) then S.EnvoyerFiche(staff, sid) end
+end
+
+-- Slot EVENT de tous les joueurs connectés : débloquer (avec une race) ou verrouiller
+ACTIONS.event_tous = function(staff, _, _, etat, race)
+	local debloque = etat == "1"
+	race = race or ""
+	if race ~= "" and not ORIGINE.Race(race) then return ORIGINE.Notifier(staff, "Race inconnue.", "erreur") end
+	if debloque and race == "" then return ORIGINE.Notifier(staff, "Choisissez la race du slot EVENT.", "erreur") end
+	local n = 0
+	for _, ply in ipairs(player.GetAll()) do
+		if ply.OrigineCompte then
+			S.Event(staff, ply:SteamID64(), debloque, race, true)
+			n = n + 1
+		end
+	end
+	H.Ajouter({ type = "event_tous", staff = staff, apres = { debloque = debloque, race = race ~= "" and race or nil, joueurs = n } })
+	local texte = debloque and ("Slot EVENT débloqué (" .. ORIGINE.NomRace(race) .. ")") or "Slot EVENT verrouillé"
+	ORIGINE.Notifier(staff, texte .. " pour " .. n .. " joueur(s) connecté(s).", "succes")
 end
 
 -- Changer le nom (mêmes règles qu'à la création)
@@ -568,7 +587,7 @@ recevoirStaff("origine_staff_action", function(ply)
 	local n = net.ReadInt(32)
 	local fn = ACTIONS[action]
 	if not fn then return end
-	local sansCible = action == "annuler" or action == "rerolls_tous"
+	local sansCible = action == "annuler" or action == "rerolls_tous" or action == "event_tous"
 	if not sansCible and not estSteamID64(sid) then return end
 	local sansSlot = action == "rerolls" or action == "event" or action == "vip_slot"
 	if not sansCible and not sansSlot and (slot < 1 or slot > ORIGINE.NB_SLOTS) then return end
