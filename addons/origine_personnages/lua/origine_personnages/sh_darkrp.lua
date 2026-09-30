@@ -154,3 +154,29 @@ else
 		if C.DesactiverF4 and appuye and string.find(string.lower(bind), "gm_showspare2", 1, true) then return true end
 	end)
 end
+
+---------------------------------------------------------------------------
+-- Police DarkRP désactivée (C.DesactiverPolice) : rien de tout ça en médiéval
+---------------------------------------------------------------------------
+local function retirerPolice()
+	if not C.DesactiverPolice or not DarkRP then return end
+	local gm = GAMEMODE or GM
+	if gm then gm.CivilProtection = {} end
+	if DarkRP.removeChatCommand then
+		for _, cmd in ipairs(C.CommandesPolice) do pcall(DarkRP.removeChatCommand, cmd) end
+	end
+end
+hook.Add("DarkRPFinishedLoading", "origine_police", retirerPolice)
+hook.Add("InitPostEntity", "origine_police", retirerPolice)
+
+if SERVER then
+	-- Filet de sécurité si un autre addon tente quand même
+	local function refuser()
+		if C.DesactiverPolice then return false, "Il n'y a pas de police sur ce serveur." end
+	end
+	hook.Add("canWanted", "origine_police", refuser)
+	hook.Add("canRequestWarrant", "origine_police", refuser)
+	hook.Add("canArrest", "origine_police", refuser)
+	hook.Add("canLockdown", "origine_police", refuser)
+	hook.Add("playerCanArrest", "origine_police", refuser)
+end

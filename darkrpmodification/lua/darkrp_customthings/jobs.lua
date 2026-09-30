@@ -283,9 +283,8 @@ end
 -- Job des nouveaux personnages (et quand le job sauvegardé n'est plus disponible)
 GAMEMODE.DefaultTeam = TEAM_VILLAGEOIS
 
--- La Milice de la Marche fait office de force de l'ordre (avis de recherche, mandats)
+-- Médiéval RP : aucune police DarkRP (avis de recherche, mandats, prison désactivés par origine_personnages)
 GAMEMODE.CivilProtection = {}
-for equipe in pairs(EQUIPES.empire or {}) do GAMEMODE.CivilProtection[equipe] = true end
 
 -- Chats de faction (/g message)
 local function membre(...)

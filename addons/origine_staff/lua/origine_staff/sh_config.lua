@@ -49,7 +49,6 @@ ORIGINE.ConfigStaff = {
 		{ id = "economie", Nom = "Économie" },
 		{ id = "inventaire", Nom = "Inventaire" },
 		{ id = "jobs", Nom = "Jobs" },
-		{ id = "police", Nom = "Police" },
 		{ id = "staff", Nom = "Staff" },
 	},
 }

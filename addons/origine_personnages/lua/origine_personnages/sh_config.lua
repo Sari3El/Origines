@@ -105,6 +105,16 @@ C.ArmureMaxDefaut = 100
 -- darkrpmodification/lua/darkrp_config/disabled_defaults.lua -> ["f4menu"] = true
 C.DesactiverF4 = true
 
+-- true : tout le système de police de DarkRP est retiré (médiéval RP) :
+-- avis de recherche, mandats, prison, couvre-feu, appel à la police, licences d'armes.
+C.DesactiverPolice = true
+
+-- Commandes DarkRP retirées quand DesactiverPolice = true
+C.CommandesPolice = {
+	"wanted", "unwanted", "warrant", "unwarrant", "cr", "lockdown", "unlockdown",
+	"jailpos", "setjailpos", "addjailpos", "givelicense", "requestlicense",
+}
+
 -- SWEP sélectionné à chaque apparition (mains vides, bras le long du corps). "" = aucun
 C.ArmeAuSpawn = "origine_mains"
 

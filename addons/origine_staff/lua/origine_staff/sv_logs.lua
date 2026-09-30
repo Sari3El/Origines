@@ -384,7 +384,7 @@ hook.Add("origine_InvAction", "origine_logs", function(ply, action, objet, extra
 end)
 
 ---------------------------------------------------------------------------
--- Jobs et police (hooks DarkRP)
+-- Jobs (et police si elle est réactivée dans la config)
 ---------------------------------------------------------------------------
 hook.Add("OnPlayerChangedTeam", "origine_logs", function(ply, ancien, nouveau)
 	L.Ajouter("jobs", ply, nil, (team.GetName(ancien) or "?") .. " -> " .. (team.GetName(nouveau) or "?"))

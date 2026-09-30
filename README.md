@@ -85,7 +85,7 @@ dans XGUI (onglet Groupes, catégorie « Origine »). Elle est vérifiée côté
 (Empire, Créatures de la nuit, Consortium) en 7 catégories, plus « Villageois », le job par défaut.
 Chaque job n'a que les armes de base (clés, physics gun, toolgun, gravity gun) et le SWEP `origine_mains`
 (mains vides, bras le long du corps). Uniques (max 1) : Capitaine de la Milice, L'Originel, Banquier.
-La Milice sert de force de l'ordre (`CivilProtection`), et chaque faction a son chat de groupe (`/g`).
+Aucune police DarkRP (`C.DesactiverPolice` : avis de recherche, mandats, prison, couvre-feu, licences retirés). Chaque faction a son chat de groupe (`/g`).
 
 Dans `darkrpmodification/lua/darkrp_config/disabled_defaults.lua` :
 - `["f4menu"] = true` pour couper le menu F4 (l'addon le bloque aussi : `C.DesactiverF4`) ;

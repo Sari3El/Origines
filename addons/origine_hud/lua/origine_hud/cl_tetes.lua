@@ -81,7 +81,7 @@ hook.Add("HUDPaint", "origine_tetes", function()
 					UI.TexteOmbre(ORIGINE.NomRace(race), "tete_texte", x, y - UI.S(4),
 						teinte(cRace, ORIGINE.CouleurRace(race), alpha), TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
 				end
-				if cible.getDarkRPVar and cible:getDarkRPVar("wanted") then
+				if not ORIGINE.Config.DesactiverPolice and cible.getDarkRPVar and cible:getDarkRPVar("wanted") then
 					UI.TexteOmbre("Recherché", "tete_texte", x, y - UI.S(66), teinte(cAlerte, COL.Alerte, alpha), TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
 				end
 			end
