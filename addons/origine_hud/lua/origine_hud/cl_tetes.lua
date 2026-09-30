@@ -58,15 +58,32 @@ end
 hook.Add("HUDPaint", "origine_tetes", function()
 	local ply = LocalPlayer()
 	if not IsValid(ply) or ORIGINE.MenuOuvert() or ORIGINE.EnMenu(ply) then return end
-	-- Réservé aux superadmins (réglage InfosTete.SuperadminSeulement)
-	if CH.InfosTete.SuperadminSeulement and not ply:IsSuperAdmin() then return end
+	local oeil = ply:EyePos()
+	local cfg = CH.InfosTete
+	local modeAdmin = cfg.ModeAdmin and ply:GetNW2Bool("origine_mode_admin", false)
+
+	-- Rappel discret en haut à gauche quand le mode admin est actif
+	if modeAdmin then
+		UI.TexteOmbre("MODE ADMIN", "tete_texte", UI.S(16), UI.S(12), COL.Alerte)
+	end
+
+	-- Infos des portes (propriétaire, à vendre…) : fournies par DarkRP, visibles par tous
+	local tr = ply:GetEyeTrace()
+	local ent = tr.Entity
+	if IsValid(ent) and ent.isKeysOwnable and ent:isKeysOwnable() and ent.drawOwnableInfo
+		and tr.HitPos:DistToSqr(oeil) < 40000 then
+		ent:drawOwnableInfo()
+	end
+
+	-- Infos au-dessus des joueurs : tout le monde, slot Staff ou mode admin (voir sh_config)
+	local voit = cfg.Tous or modeAdmin or (cfg.SlotStaff and ORIGINE.SlotJoueur(ply) == ORIGINE.SLOT_STAFF)
+	if not voit then return end
 
 	if CurTime() >= prochainTest then
 		prochainTest = CurTime() + CH.InfosTete.Rafraichissement
 		rafraichir(ply)
 	end
 
-	local oeil = ply:EyePos()
 	for _, v in ipairs(visibles) do
 		local cible = v.ply
 		if IsValid(cible) and cible:Alive() then
@@ -88,13 +105,5 @@ hook.Add("HUDPaint", "origine_tetes", function()
 				end
 			end
 		end
-	end
-
-	-- Infos des portes (propriétaire, à vendre…) : fournies par DarkRP
-	local tr = ply:GetEyeTrace()
-	local ent = tr.Entity
-	if IsValid(ent) and ent.isKeysOwnable and ent:isKeysOwnable() and ent.drawOwnableInfo
-		and tr.HitPos:DistToSqr(oeil) < 40000 then
-		ent:drawOwnableInfo()
 	end
 end)

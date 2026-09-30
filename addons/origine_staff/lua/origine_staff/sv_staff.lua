@@ -62,6 +62,20 @@ function S.Ouvrir(ply)
 	net.Send(ply)
 end
 
+---------------------------------------------------------------------------
+-- Mode admin : voir les infos au-dessus des joueurs (origine_hud), activable en jeu
+---------------------------------------------------------------------------
+ORIGINE.EnregistrerPermission("origine_mode_admin", "superadmin", "Mode admin : voir les noms au-dessus des joueurs (!modeadmin)")
+
+function S.BasculerModeAdmin(ply)
+	if not IsValid(ply) then return end
+	if not ORIGINE.APermission(ply, "origine_mode_admin") then return refuser(ply) end
+	local actif = not ply:GetNW2Bool("origine_mode_admin", false)
+	ply:SetNW2Bool("origine_mode_admin", actif)
+	ORIGINE.Notifier(ply, actif and "Mode admin activé : noms visibles au-dessus des joueurs." or "Mode admin désactivé.", actif and "succes" or "info")
+end
+concommand.Add("origine_modeadmin", function(ply) S.BasculerModeAdmin(ply) end)
+
 concommand.Add("origine", function(ply)
 	if IsValid(ply) then S.Ouvrir(ply) end
 end)
@@ -70,6 +84,10 @@ hook.Add("PlayerSay", "origine_staff", function(ply, texte)
 	local cmd = string.lower(string.Trim(texte))
 	if cmd == "!origine" or cmd == "/origine" then
 		S.Ouvrir(ply)
+		return ""
+	end
+	if cmd == "!modeadmin" or cmd == "/modeadmin" then
+		S.BasculerModeAdmin(ply)
 		return ""
 	end
 end)

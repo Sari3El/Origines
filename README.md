@@ -112,6 +112,7 @@ Sans ces champs : `PVMaxDefaut` / `ArmureMaxDefaut` de la config (100), et les v
 | F6, `!tickets` | | Tous | Menu des tickets (file des tickets pour le staff) |
 | `!report message` | | Tous | Ticket rapide |
 | `!cycle jour`, `nuit`, `heure 23:40`, `pause`, `reprendre`, `lune oui/non/auto` | `origine_cycle …` | `origine_cycle_admin` | Régler le cycle jour/nuit |
+| `!modeadmin` | `origine_modeadmin` | `origine_mode_admin` | Afficher / masquer les noms au-dessus des joueurs |
 | `ulx relever <joueur>`, `ulx delier <joueur>` | | ULX (admins) | Relever / délier (aussi dans le TAB) |
 
 La permission `origine_menu` est donnée aux superadmins par défaut et s'attribue à d'autres rangs
@@ -365,8 +366,9 @@ Mise en place : les Covan qu'un joueur avait déjà dans DarkRP sont transféré
   de chacun (une seule liste, sans catégories de job). Le staff (`origine_tab_staff`) voit en plus le nom
   du personnage, la race, le métier, le badge Staff/EVENT, le slot, les kills/morts, les PV et les Covan,
   avec la liste rangée par catégorie de job.
-- **Infos au-dessus des joueurs** : réservées aux superadmins (`InfosTete.SuperadminSeulement` dans la
-  config d'origine_hud ; `false` pour les montrer à tout le monde).
+- **Infos au-dessus des joueurs** : visibles automatiquement sur le slot Staff, ou en « mode admin »
+  (`!modeadmin`, permission `origine_mode_admin`, superadmins par défaut). `InfosTete.Tous = true` dans la
+  config d'origine_hud pour les montrer à tout le monde. Les infos des portes restent visibles par tous.
 
 - **Parchemin au F4** : le menu F4 est désactivé sur ce serveur (`C.DesactiverF4`) ; le parchemin est donc
   aussi en vente avec `/parchemin`.

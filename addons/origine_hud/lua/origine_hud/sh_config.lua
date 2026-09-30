@@ -26,9 +26,11 @@ ORIGINE.ConfigHUD = {
 
 	-- Infos au-dessus de la tête des joueurs
 	InfosTete = {
-		-- true : seuls les superadmins voient les infos au-dessus des joueurs (nom, métier, race).
-		-- false : tout le monde les voit.
-		SuperadminSeulement = true,
+		-- Qui voit les infos au-dessus des joueurs (nom, métier, race) :
+		Tous = false,       -- true : tout le monde, tout le temps (les deux réglages suivants ne servent plus)
+		SlotStaff = true,   -- visibles automatiquement quand on joue le slot Staff
+		ModeAdmin = true,   -- « mode admin » activable en jeu : !modeadmin (ou origine_modeadmin en console)
+		                    -- réservé à la permission ULX origine_mode_admin (superadmins par défaut)
 		Distance = 400,           -- distance d'affichage normale
 		DistanceDiscretion = 120, -- races avec « discrétion » : visibles seulement de près
 		Rafraichissement = 0.2,   -- secondes entre deux tests de visibilité
