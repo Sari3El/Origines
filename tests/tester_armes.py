@@ -47,6 +47,9 @@ function VMT:Dot(o) return self.x * o.x + self.y * o.y + self.z * o.z end
 VMT.__add = function(a, b) return Vector(a.x + b.x, a.y + b.y, a.z + b.z) end
 VMT.__sub = function(a, b) return Vector(a.x - b.x, a.y - b.y, a.z - b.z) end
 VMT.__mul = function(a, k) return Vector(a.x * k, a.y * k, a.z * k) end
+function VMT:LengthSqr() return self:Dot(self) end
+function VMT:Cross(o) return Vector(self.y * o.z - self.z * o.y, self.z * o.x - self.x * o.z, self.x * o.y - self.y * o.x) end
+function VMT:Normalize() local l = self:Length() self.x, self.y, self.z = self.x / l, self.y / l, self.z / l end
 Vector = function(x, y, z) return setmetatable({ x = x, y = y, z = z }, VMT) end
 Angle = function(p, y, r) return { p = p, y = y, r = r } end
 vector_origin, angle_zero = Vector(0, 0, 0), Angle(0, 0, 0)
@@ -146,26 +149,25 @@ SANS = { p, d }
 verifier("DeuxMains = false : ligne de wOS telle quelle", liste(G.SANS) == ["P", "D"])
 verifier("une main : depuis la paume droite, direction wOS", liste(G.L1) == [2, 0, 40, 1], liste(G.L1))
 lua.execute(r"""
-math.NormalizeAngle = math.NormalizeAngle or function(a) return (a + 180) % 360 - 180 end
-math.Clamp = math.Clamp or function(v, a, b) return math.max(a, math.min(b, v)) end
-local AngleAvant = Angle
-Angle = function(p, y, r)
-	local t = AngleAvant(p, y, r)
-	t.Right = function() return Vector(math.sin(math.rad(y)), -math.cos(math.rad(y)), 0) end
-	return t
-end
-local own = { EyeAngles = function() return { y = 0 } end }
+-- Main dont l'axe « droite » est AXE ; la tête ne compte pas
+AXE = Vector(0, -1, 0)
+local own = { LookupBone = function() return 1 end,
+	GetBoneMatrix = function() return { GetAngles = function() return { Right = function() return AXE end } end } end }
 local w = { GetOwner = function() return own end }
--- Lame penchée nettement vers +X : droite = celle de dir:Angle() (0, -1, 0)
-local r1 = ORIGINE.Armes.DroiteLissee(w, Vector(0.3, 0, 0.95), "t")
--- Presque verticale avec un petit bruit vers -X : la droite ne bascule pas
-local r2 = ORIGINE.Armes.DroiteLissee(w, Vector(-0.005, 0.001, 1), "t")
-local r3 = ORIGINE.Armes.DroiteLissee(w, Vector(0.004, -0.003, 1), "t")
-DL = { math.floor(r1.y + 0.5), math.floor(r2.y + 0.5), math.floor(r3.y + 0.5) }
-Angle = AngleAvant
+local function r(dir) local v = ORIGINE.Armes.DroiteLissee(w, dir, "t") return { v.x, v.y, v.z } end
+local function arr(t) return { math.floor(t[1] * 100 + 0.5) / 100, math.floor(t[2] * 100 + 0.5) / 100, math.floor(t[3] * 100 + 0.5) / 100 } end
+-- Relevé quand la lame penche : identique à dir:Angle() (droite = dir x Z normalisé)
+local d1 = Vector(0.3, 0, 0.954)
+R1 = arr(r(d1))
+-- Main tournée de 90° autour de la verticale : l'épée tourne avec la main
+AXE = Vector(1, 0, 0)
+R2 = arr(r(Vector(0, 0.3, 0.954)))
+-- Lame presque verticale avec du bruit : suit la main, ne bascule pas
+R3 = arr(r(Vector(-0.004, 0.003, 1)))
 """)
-verifier("droite lissée : comme dir:Angle() quand la lame penche", G.DL[1] == -1, liste(G.DL))
-verifier("droite lissée : ne bascule pas quand la lame est presque verticale", liste(G.DL) == [-1, -1, -1], liste(G.DL))
+verifier("épée liée à la main : relevé identique à l'orientation d'origine", liste(G.R1) == [0, -1, 0], liste(G.R1))
+verifier("épée liée à la main : tourne avec la main", liste(G.R2) == [1, 0, 0], liste(G.R2))
+verifier("épée liée à la main : ne bascule pas quand la lame est verticale", liste(G.R3) == [1, 0, 0], liste(G.R3))
 verifier("modèle préchargé", G.PRECACHE["models/peanut/templarsword.mdl"] is True)
 
 for cle in ("nuit", "empire", "consortium"):

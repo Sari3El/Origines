@@ -120,33 +120,31 @@ end
 
 -- Place un modèle pour que sa lame suive la direction dir et que sa garde soit en depart.
 -- Renvoie position et angle du modèle.
--- Droite de la lame, comme dir:Angle() (orientation d'origine), mais lissée.
--- dir:Angle() prend la direction horizontale de la lame : quand la lame est presque verticale, cette
--- direction est minuscule et change d'un coup au moindre mouvement (l'épée basculait de gauche à
--- droite). On garde donc cette direction (par rapport au corps) et on ne la suit que lorsqu'elle
--- est nette. Quand elle est nette, le résultat est exactement celui de dir:Angle().
+-- Droite de la lame, attachée à la MAIN du joueur.
+-- L'orientation d'origine (dir:Angle(), calée sur la verticale du monde) est relevée une fois par
+-- rapport à l'os de la main, à un moment où la lame penche nettement (là où dir:Angle() est
+-- fiable) ; ensuite l'épée suit uniquement la main : elle ne tourne plus quand on bouge la tête,
+-- et ne bascule plus quand la lame est presque verticale.
 function A.DroiteLissee(w, dir, cle)
 	local own = IsValid(w) and w:GetOwner()
 	if not IsValid(own) then return nil end
-	local a = (CLIENT and own.GetRenderAngles) and own:GetRenderAngles() or own:EyeAngles()
-	local corps = a.y
-	local hx, hy = dir.x, dir.y
-	local long = math.sqrt(hx * hx + hy * hy)
-	w.OrigineLacets = w.OrigineLacets or {}
-	local lisse = w.OrigineLacets[cle]
-	if long > 0.02 then
-		local lacet = math.NormalizeAngle(math.deg(math.atan2(hy, hx)) - corps)
-		if not lisse then
-			lisse = lacet
-		else
-			-- Nette (lame penchée de plus de ~6°) : suivie aussitôt ; presque verticale : suivie lentement
-			local poids = math.Clamp((long - 0.02) / 0.08, 0, 1)
-			lisse = lisse + math.NormalizeAngle(lacet - lisse) * poids
-		end
-		w.OrigineLacets[cle] = lisse
+	local id = own:LookupBone(OS_MAIN)
+	local m = id and own:GetBoneMatrix(id)
+	if not m then return nil end
+	local axe = m:GetAngles():Right()
+	local rh = axe - dir * axe:Dot(dir)
+	if rh:LengthSqr() < 0.01 then return nil end
+	rh:Normalize()
+	w.OrigineCalage = w.OrigineCalage or {}
+	local theta = w.OrigineCalage[cle]
+	if not theta then
+		local ro = dir:Cross(Vector(0, 0, 1))
+		if ro:LengthSqr() < 0.02 then return rh end -- lame presque verticale : en attendant le relevé
+		ro:Normalize()
+		theta = math.atan2(rh:Cross(ro):Dot(dir), rh:Dot(ro))
+		w.OrigineCalage[cle] = theta
 	end
-	if not lisse then return nil end
-	return Angle(0, corps + lisse, 0):Right()
+	return rh * math.cos(theta) + dir:Cross(rh) * math.sin(theta)
 end
 
 -- Repère de la lame : avant = dir, droite = droite donnée (rendue perpendiculaire à dir)
