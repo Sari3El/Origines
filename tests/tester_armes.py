@@ -102,7 +102,7 @@ for cle, s in armes.items():
 
 for cle, s in armes.items():
     verifier(f"{cle} : modèle d'épée templarsword", s.UseHilt == s.WorldModel == "models/peanut/templarsword.mdl")
-    verifier(f"{cle} : placement en main réglable", s.OrigineEnMain is not None and s.OrigineEnMain.Garde == 0.2)
+    verifier(f"{cle} : placement en main réglable", s.OrigineEnMain is not None and s.OrigineEnMain.Garde == 0.2 and s.OrigineEnMain.Avance == -5)
     verifier(f"{cle} : dessin wOS non remplacé", s.DrawWorldModelTranslucent is None and s.GetSaberPosAng is None)
 verifier("modèle préchargé", G.PRECACHE["models/peanut/templarsword.mdl"] is True)
 

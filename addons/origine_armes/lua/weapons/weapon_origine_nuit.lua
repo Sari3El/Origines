@@ -71,7 +71,7 @@ SWEP.UseLength = 42 -- Portée de la lame (touches) : à régler sur la longueur
 -- Épée en main : sa lame est alignée sur la ligne des touches de wOS (voir LISEZMOI.txt, partie 3).
 -- Garde = place de la garde sur le modèle (0 = pommeau, 1 = pointe), Avance = décalage le long de la
 -- lame (négatif = recule), Roulis = rotation autour de la lame. Réglage en jeu : origine_epee_placer
-SWEP.OrigineEnMain = { Garde = 0.2, Avance = 0, Roulis = 0, Echelle = 1 }
+SWEP.OrigineEnMain = { Garde = 0.2, Avance = -5, Roulis = 0, Echelle = 1 }
 SWEP.UseWidth = 1
 SWEP.UseColor = Color( 0, 0, 0 ) -- Noir : la lumière dynamique de la lame n'éclaire rien
 SWEP.UseDarkInner = 1
