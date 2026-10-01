@@ -35,8 +35,21 @@ killicon = { Add = function() end }
 ORIGINE = { Inv = { Autorisees = {}, Autoriser = function(c) ORIGINE.Inv.Autorisees[c] = true end } }
 LAMES = {}
 wOS = { ALCS = { LightsaberBase = { Blades = LAMES, AddBlade = function(self, t) LAMES[t.Name] = t end } } }
+IN_ATTACK, IN_ATTACK2 = 1, 2048
+local VMT = {}
+VMT.__index = VMT
+function VMT:DistToSqr(o) local dx, dy, dz = self.x - o.x, self.y - o.y, self.z - o.z return dx * dx + dy * dy + dz * dz end
+Vector = function(x, y, z) return setmetatable({ x = x, y = y, z = z }, VMT) end
+JOUEURS = {}
+player = { GetAll = function() return JOUEURS end }
+isfunction = function(v) return type(v) == "function" end
+SONS_CREES, SONS_JOUES, DECALS, EFFETS = {}, {}, {}, {}
+CreateSound = function(ent, nom) SONS_CREES[#SONS_CREES + 1] = nom return { nom = nom } end
+sound = { Play = function(nom) SONS_JOUES[#SONS_JOUES + 1] = nom end }
+util = { Decal = function(nom) DECALS[#DECALS + 1] = nom end, Effect = function(nom) EFFETS[#EFFETS + 1] = nom end }
 """)
 lua.execute((racine / "origine_armes" / "sh_armes.lua").read_text(encoding="utf-8"))
+lua.execute((racine / "origine_armes" / "sh_epee.lua").read_text(encoding="utf-8"))
 
 
 def charger(cle):
@@ -75,8 +88,8 @@ for cle, s in armes.items():
     verifier(f"{cle} : longueur normale (portée gardée)", s.UseLength == 42)
     verifier(f"{cle} : pas de brûlure, pas d'étourdissement", s.SaberBurnDamage == 0 and s.ShouldStun is False)
     verifier(f"{cle} : ni compétences, ni atelier, formes wOS", s.UseSkills is False and s.PersonalLightsaber is False and s.UseForms is False)
-    verifier(f"{cle} : sons vides + son d'épée", s.UseLoopSound == s.UseOnSound == s.UseOffSound == "origine_armes/silence.wav"
-             and s.UseSwingSound == "origine_armes/epee_swing.wav")
+    verifier(f"{cle} : aucun son (allumage, extinction, bourdonnement, balancement)",
+             s.UseLoopSound == s.UseOnSound == s.UseOffSound == s.UseSwingSound == "common/null.wav")
     verifier(f"{cle} : lumière de lame éteinte (noir)", s.UseColor.r == 0 and s.UseColor.g == 0 and s.UseColor.b == 0)
     verifier(f"{cle} : base wOS", s.Base == "wos_adv_single_lightsaber_base")
     verifier(f"{cle} : pas d'icône de sabre dans le sélecteur", s.OrigineSansIcone is True)
@@ -150,6 +163,96 @@ verifier("coup de lame du Mage = mêlée (catégorie de l'arme)", G.CAT_LAME is 
 verifier("dégâts juste après un pouvoir = magie", G.CAT_RECENT == "magie")
 verifier("coup de lame 2 s après = mêlée", G.CAT_APRES is None)
 verifier("armes de faction : jamais magie", G.CAT_EMPIRE is None)
+
+# --- Comportement d'épée (sh_epee.lua) ---
+lua.execute(r"""
+local function arme(c) return { GetClass = function() return c end } end
+function joueur(pos, classe)
+	local j = { pos = pos, touches = {}, w = classe and arme(classe) or nil }
+	j.IsPlayer = function() return true end
+	j.GetPos = function() return j.pos end
+	j.GetActiveWeapon = function() return j.w end
+	j.KeyDown = function(_, k) return j.touches[k] == true end
+	return j
+end
+PORTEUR = joueur(Vector(0, 0, 0), "weapon_origine_empire")
+AUTRE = joueur(Vector(2000, 0, 0), nil)
+JOUEURS = { PORTEUR, AUTRE }
+local emit = HOOKS["EntityEmitSound/origine_armes_sons"]
+S_ARME = emit({ SoundName = "lightsaber/saber_hit.wav", Entity = PORTEUR.w })
+S_PREFIXE = emit({ SoundName = ")Lightsaber\\Saber_Swing1.wav", Entity = PORTEUR })
+S_VICTIME = emit({ SoundName = "lightsaber/saber_hit_laser2.wav", Entity = joueur(Vector(50, 0, 0)) })
+S_LOIN = emit({ SoundName = "lightsaber/saber_hit.wav", Entity = AUTRE })
+S_POUVOIR = emit({ SoundName = "lightsaber/force_leap.wav", Entity = PORTEUR })
+S_AUTRE = emit({ SoundName = "physics/body/body_medium_impact_hard1.wav", Entity = PORTEUR })
+CreateSound(PORTEUR.w, "lightsaber/saber_loop3.wav")
+CreateSound(AUTRE, "lightsaber/saber_loop3.wav")
+sound.Play("lightsaber/saber_hit.wav", Vector(30, 0, 0))
+sound.Play("lightsaber/saber_hit.wav", Vector(3000, 0, 0))
+util.Decal("FadingScorch", Vector(40, 0, 0), Vector(40, 0, 0))
+util.Decal("FadingScorch", Vector(3000, 0, 0), Vector(3000, 0, 0))
+util.Decal("Blood", Vector(40, 0, 0), Vector(40, 0, 0))
+local function ed(p) return { GetOrigin = function() return p end } end
+util.Effect("StunstickImpact", ed(Vector(40, 0, 0)))
+util.Effect("BloodImpact", ed(Vector(40, 0, 0)))
+util.Effect("StunstickImpact", ed(Vector(3000, 0, 0)))
+IMPACTS = 0
+rb655_DrawHit_wos = function() IMPACTS = IMPACTS + 1 end
+WOS_ALCS = { TRACE = { INTERP = 3, MINIMALINTERP = 4 } }
+wOS.ALCS.Config = { LightsaberTrace = 3 }
+CLIENT = true
+HOOKS["InitPostEntity/origine_armes_epee"]()
+CLIENT = false
+rb655_DrawHit_wos(Vector(20, 0, 0), Vector(1, 0, 0))
+rb655_DrawHit_wos(Vector(3000, 0, 0), Vector(1, 0, 0))
+HOOKS["InitPostEntity/origine_armes_epee"]()
+rb655_DrawHit_wos(Vector(3000, 0, 0), Vector(1, 0, 0))
+
+-- Dégâts
+local degats = HOOKS["EntityTakeDamage/origine_armes_contact"]
+local function dmg(att, infl) return { GetAttacker = function() return att end, GetInflictor = function() return infl end } end
+local cible = joueur(Vector(30, 0, 0))
+TEMPS = 1000
+PORTEUR.OrigineDernierPouvoir = nil
+D_IMMOBILE = degats(cible, dmg(PORTEUR, PORTEUR.w))
+D_IMMOBILE_J = degats(cible, dmg(PORTEUR, PORTEUR))
+PORTEUR.touches[IN_ATTACK] = true
+D_CLIC_TENU = degats(cible, dmg(PORTEUR, PORTEUR.w))
+PORTEUR.touches[IN_ATTACK] = nil
+HOOKS["KeyPress/origine_armes_coup"](PORTEUR, IN_ATTACK)
+TEMPS = TEMPS + 0.5
+D_APRES_CLIC = degats(cible, dmg(PORTEUR, PORTEUR.w))
+TEMPS = TEMPS + 1
+D_TROP_TARD = degats(cible, dmg(PORTEUR, PORTEUR.w))
+PORTEUR.w.GetAttackDelay = function() return TEMPS + 2 end
+D_SPECIALE = degats(cible, dmg(PORTEUR, PORTEUR.w))
+PORTEUR.w.GetAttackDelay = nil
+PORTEUR.OrigineDernierPouvoir = TEMPS
+D_POUVOIR = degats(cible, dmg(PORTEUR, PORTEUR))
+PORTEUR.OrigineDernierPouvoir = nil
+D_OBJET = degats(cible, dmg(PORTEUR, { GetClass = function() return "prop_physics" end }))
+D_SANS_ARME = degats(cible, dmg(AUTRE, AUTRE))
+""")
+verifier("son de sabre de l'arme : coupé", G.S_ARME is False)
+verifier("son de sabre (préfixes moteur, majuscules, \\) : coupé", G.S_PREFIXE is False)
+verifier("son d'impact joué sur la victime à côté : coupé", G.S_VICTIME is False)
+verifier("son de sabre loin de toute arme Origine : gardé", G.S_LOIN is None)
+verifier("son du saut de Force : gardé", G.S_POUVOIR is None)
+verifier("autre son : gardé", G.S_AUTRE is None)
+verifier("CreateSound de sabre de l'arme : remplacé par du silence", liste(G.SONS_CREES) == ["common/null.wav", "lightsaber/saber_loop3.wav"], liste(G.SONS_CREES))
+verifier("sound.Play de sabre près d'une arme : coupé, loin : gardé", liste(G.SONS_JOUES) == ["lightsaber/saber_hit.wav"])
+verifier("brûlure au mur près de l'arme : retirée (sang gardé)", liste(G.DECALS) == ["FadingScorch", "Blood"], liste(G.DECALS))
+verifier("étincelles près de l'arme : retirées (sang gardé)", liste(G.EFFETS) == ["BloodImpact", "StunstickImpact"], liste(G.EFFETS))
+verifier("impact wOS (client) : retiré près de l'arme, gardé ailleurs, remplacé une seule fois", G.IMPACTS == 2, G.IMPACTS)
+verifier("trace wOS réglée sur MINIMALINTERP", G.wOS.ALCS.Config.LightsaberTrace == 4)
+verifier("lame immobile qui touche : aucun dégât", G.D_IMMOBILE is True and G.D_IMMOBILE_J is True)
+verifier("clic tenu : dégâts", G.D_CLIC_TENU is None)
+verifier("0,5 s après un clic : dégâts", G.D_APRES_CLIC is None)
+verifier("1,5 s après un clic : aucun dégât", G.D_TROP_TARD is True)
+verifier("attaque spéciale wOS en cours : dégâts", G.D_SPECIALE is None)
+verifier("pouvoir utilisé à l'instant : dégâts gardés", G.D_POUVOIR is None)
+verifier("dégâts d'autre chose (objet) : non touchés", G.D_OBJET is None)
+verifier("joueur sans arme Origine : non touché", G.D_SANS_ARME is None)
 
 print(f"\n{total - echecs}/{total} tests réussis")
 sys.exit(1 if echecs else 0)

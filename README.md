@@ -293,6 +293,10 @@ Données par les jobs de leur faction (`jobs.lua`) ; avec `C.ArmesDuJob = true`,
 d'origine_personnages donne les armes du job (sauf police et clés DarkRP). Aucun job « Mage » n'existe encore.
 Intégration : sélecteur (nom seul, cooldown du pouvoir choisi), inventaire (rangeables), mise à terre (aucun
 pouvoir à terre ou ligoté), races (les 4 lames en « mêlée », les pouvoirs offensifs du Mage en « magie »).
+Comportement d'épée (`origine_armes/sh_epee.lua`) : tous les sons de sabre laser coupés (allumage, bourdonnement,
+balancement, impacts, chocs entre lames ; les sons des pouvoirs restent), plus de brûlure ni d'étincelles sur
+les murs, et la lame ne blesse que pendant un vrai coup (pas au simple contact d'une lame immobile).
+La trace wOS est réglée sur `MINIMALINTERP` (à reporter aussi dans le `sv_config.lua` de wOS).
 
 ## Pour les autres addons
 

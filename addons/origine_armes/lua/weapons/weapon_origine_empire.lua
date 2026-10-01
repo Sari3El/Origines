@@ -73,11 +73,12 @@ SWEP.UseDarkInner = 1
 SWEP.CustomSettings = {}
 SWEP.CustomSettings[ "Blade" ] = "Invisible" -- Type de lame créé par origine_armes (voir LISEZMOI.txt)
 
--- Sons : pas de bourdonnement, d'allumage ni d'extinction ; un son d'épée quand on frappe
-SWEP.UseLoopSound = "origine_armes/silence.wav"
-SWEP.UseOnSound = "origine_armes/silence.wav"
-SWEP.UseOffSound = "origine_armes/silence.wav"
-SWEP.UseSwingSound = "origine_armes/epee_swing.wav"
+-- Sons : aucun (ni bourdonnement, allumage, extinction, balancement ; les impacts et chocs
+-- de sabre laser sont coupés par origine_armes/sh_epee.lua)
+SWEP.UseLoopSound = "common/null.wav"
+SWEP.UseOnSound = "common/null.wav"
+SWEP.UseOffSound = "common/null.wav"
+SWEP.UseSwingSound = "common/null.wav"
 
 -- Seconde arme (double maniement) : non utilisée
 SWEP.UseSecHilt = false

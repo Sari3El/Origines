@@ -8,14 +8,14 @@ lua/weapons/weapon_origine_empire.lua      Lame de l'Empire      (Empire)       
 lua/weapons/weapon_origine_consortium.lua  Lame du Consortium    (Consortium)            Saut de Force uniquement
 lua/weapons/weapon_origine_mage.lua        Lame du Mage          (Mage)                  Tous les pouvoirs et tous les ultimes
 lua/origine_armes/sh_armes.lua             Commun aux 4 armes (lame invisible, listes du Mage, cooldowns, races)
+lua/origine_armes/sh_epee.lua              Comportement d'épée : sons, traces au mur, dégâts au contact (partie 2)
 materials/origine_armes/lame_invisible.*   Matériau entièrement transparent de la lame
-sound/origine_armes/                       silence.wav (allumage, extinction, bourdonnement) et epee_swing.wav
 
 Catégories du menu des armes : « Origine Créatures de la nuit Weapon », « Origine Empire Weapon »,
 « Origine Consortium Weapon », « Origine Mage Weapon » (réservées aux admins dans le menu Q).
 Les noms d'affichage sont provisoires : SWEP.PrintName dans chaque fichier d'arme.
 
-À mettre dans la collection Workshop du serveur : les dossiers materials/origine_armes et sound/origine_armes.
+À mettre dans la collection Workshop du serveur : le dossier materials/origine_armes.
 
 
 1. Le type de lame « Invisible » (seule modification liée à ALCS)
@@ -45,14 +45,29 @@ Si une lueur restait visible en jeu : dans le fichier de l'arme, ajouter SWEP.No
 (wOS ne dessine alors plus du tout la lame ; à tester, car la base wOS est chiffrée côté serveur).
 
 
-2. Détection des coups
-----------------------
-wOS.ALCS.Config.LightsaberTrace (lua/wos/advswl/config/lightsaber/sv_config.lua) vaut
-WOS_ALCS.TRACE.INTERP dans la version installée : la trace suit le trajet de la lame, les coups
-sont bien détectés avec une lame invisible. À ne pas mettre sur MINIMAL (moins précis).
-À noter : avec INTERP, une lame qui frôle un mur laisse une petite marque de brûlure et des
-étincelles (effet de sabre laser de wOS). MINIMALINTERP les supprime tout en gardant la précision,
-si cela gêne en jeu.
+2. Comportement d'épée (sh_epee.lua)
+------------------------------------
+Sans modifier les fichiers chiffrés de wOS :
+- Sons : aucun son de sabre laser. Les sons des armes sont vides (common/null.wav) et tous les sons
+  wOS dont le chemin commence par lightsaber/saber, lightsaber/darksaber, lightsaber/clash ou
+  lightsaber/block sont coupés quand ils viennent d'une arme Origine (impact sur un mur ou un
+  joueur, choc entre deux lames, renvoi). Liste : ORIGINE.Armes.Epee.SonsCoupes.
+  Les sons des pouvoirs (saut de Force, éclairs du Mage...) sont gardés.
+- Murs : plus de marque de brûlure ni d'étincelles quand la lame touche un mur
+  (ORIGINE.Armes.Epee.DecalsCoupes / EffetsCoupes). Le sang sur les joueurs est gardé.
+- Dégâts : la lame ne fait des dégâts que pendant un vrai coup (clic gauche ou droit tenu, ou
+  appuyé il y a moins de 0,9 s : ORIGINE.Armes.Epee.DureeCoup, ou attaque spéciale de wOS en cours).
+  Quelqu'un qui marche dans la lame immobile, ou que la lame traverse quand on se tourne, ne prend rien.
+  Les dégâts des pouvoirs du Mage restent normaux.
+- Trace des coups : origine_armes règle wOS.ALCS.Config.LightsaberTrace sur
+  WOS_ALCS.TRACE.MINIMALINTERP au chargement (la trace suit le trajet de la lame, mais seulement
+  pendant les coups). Pour être sûr qu'il soit pris en compte, mettez aussi cette valeur dans
+  lua/wos/advswl/config/lightsaber/sv_config.lua :
+      wOS.ALCS.Config.LightsaberTrace = WOS_ALCS.TRACE.MINIMALINTERP
+  À ne pas mettre sur MINIMAL (moins précis avec une lame invisible).
+Les sons, effets et marques sont filtrés autour d'un porteur d'arme Origine (110 unités :
+ORIGINE.Armes.Epee.Portee). origine_armes doit être chargé avant wOS (c'est le cas : les fichiers
+autorun sont chargés par ordre alphabétique, « origine_9d_armes » avant « wos_... »).
 
 
 3. Remplacer le manche par une vraie épée (plus tard)
@@ -84,8 +99,11 @@ le Mage place ses pouvoirs dans ses emplacements avec Alt + F.
 -----------------------
 - Avec ALCS et ses packs, puis sans les packs : la Lame du Mage n'affiche que les pouvoirs présents.
 - Aucune lame, lueur ni traînée ; seul le manche est visible. Un coup touche à la même distance.
-- Aucun son de sabre laser (allumage, bourdonnement, extinction). Les sons d'impact entre deux lames
-  restent ceux de wOS (fichiers chiffrés de wOS, non modifiés).
+- Aucun son de sabre laser : allumage, bourdonnement, extinction, balancement, coup dans un mur,
+  coup sur un joueur, choc entre deux lames.
+- Frapper un mur : ni marque de brûlure, ni étincelles.
+- Marcher dans la lame d'un joueur qui ne frappe pas, ou se faire traverser quand il se tourne :
+  aucun dégât. Un coup normal et un coup lourd font leurs dégâts.
 - Les armes de faction n'ont que le saut de Force ; le Mage peut méditer, se charger à 100 %, lancer un ultime.
 - Un joueur à terre ou ligoté ne peut utiliser aucun pouvoir (origine_mise_a_terre).
 - Un pouvoir offensif du Mage sur un Descendant du Runiste est réduit par sa résistance magique.
