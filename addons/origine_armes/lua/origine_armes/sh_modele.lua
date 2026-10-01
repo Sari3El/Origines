@@ -13,8 +13,9 @@
 	départ de cette ligne. L'épée visible et la zone de touche coïncident donc,
 	quelle que soit la posture.
 	Réglages : SWEP.OrigineEnMain (en jeu : origine_epee_placer, origine_epee_debug 1).
-	L'épée portée à la ceinture (arme possédée mais pas en main) est aussi placée
-	ici, au lieu du placement de wOS prévu pour un petit manche de sabre.
+	L'épée rangée (lame « éteinte », touche R) et l'épée portée à la ceinture (arme
+	possédée mais pas en main) sont placées au fourreau, à la ceinture (A.Ceinture),
+	au lieu du placement de wOS prévu pour un petit manche de sabre.
 -------------------------------------------------------------------------]]
 
 ORIGINE = ORIGINE or {}
@@ -130,12 +131,41 @@ end
 ---------------------------------------------------------------------------
 local placees = setmetatable({}, { __mode = "k" })
 
+-- Place de la n-ième épée à la ceinture (0 = la première) : départ de la lame et direction.
+-- Accrochée à l'os du bassin et orientée comme le corps (pas comme le regard : le haut du corps
+-- tourne quand on regarde autour de soi, pas le bassin).
+function A.PositionCeinture(ply, n)
+	local C = A.Ceinture
+	local idOs = ply:LookupBone("ValveBiped.Bip01_Pelvis")
+	if not idOs then return nil end
+	local hanche = ply:GetBonePosition(idOs)
+	if not hanche then return nil end
+	local corps = Angle(0, (ply.GetRenderAngles and ply:GetRenderAngles() or ply:GetAngles()).y, 0)
+	local inc = math.rad(C.Inclinaison)
+	local dir = LocalToWorld(Vector(-math.sin(inc), 0, -math.cos(inc)), angle_zero, vector_origin, corps)
+	local depart = hanche + LocalToWorld(Vector(C.Avant - (n or 0) * C.Ecart, C.Cote, C.Haut), angle_zero, vector_origin, corps)
+	return depart, dir
+end
+
+-- L'arme en main est-elle rangée (lame « éteinte » de wOS, touche R) ?
+function A.EpeeRangee(w)
+	return w.GetEnabled ~= nil and not w:GetEnabled()
+end
+
 function A.PlacerEnMain(w)
 	if not w.GetSaberPosAng or A.ModeleWOS(w) then return false end
-	local ok, depart, dir = pcall(w.GetSaberPosAng, w)
-	if not (ok and depart and dir) then return false end
 	local cfg = w.OrigineEnMain or A.EnMainDefaut
-	local pos, ang = A.AlignerSurLame(w, depart, dir, cfg)
+	local pos, ang
+	if A.EpeeRangee(w) and A.Ceinture.Active then
+		-- Épée rangée : au fourreau, à la ceinture
+		local depart, dir = A.PositionCeinture(w:GetOwner(), 0)
+		if not depart then return false end
+		pos, ang = A.AlignerSurLame(w, depart, dir, { Garde = cfg.Garde, Avance = 0, Roulis = A.Ceinture.Roulis, Echelle = cfg.Echelle })
+	else
+		local ok, depart, dir = pcall(w.GetSaberPosAng, w)
+		if not (ok and depart and dir) then return false end
+		pos, ang = A.AlignerSurLame(w, depart, dir, cfg)
+	end
 	if not pos then return false end
 	w:SetRenderOrigin(pos)
 	w:SetRenderAngles(ang)
@@ -189,23 +219,18 @@ hook.Add("PostPlayerDraw", "origine_epee_ceinture", function(ply)
 	if not C.Active or not GetGlobalBool("rb655_lightsaber_hiltonbelt", false) then return end
 	if wOS and wOS.ALCS and wOS.ALCS.Config and wOS.ALCS.Config.StopDrawOnBelt then return end
 	if ply:GetNW2Float("CloakTime", 0) >= CurTime() then return end
-	local idOs = ply:LookupBone("ValveBiped.Bip01_Pelvis")
-	if not idOs then return end
-	local hanche = ply:GetBonePosition(idOs)
-	if not hanche then return end
-	local corps = Angle(0, ply:GetAngles().y, 0)
-	local inc = math.rad(C.Inclinaison)
-	local dir = LocalToWorld(Vector(-math.sin(inc), 0, -math.cos(inc)), angle_zero, vector_origin, corps)
 	local actif = ply:GetActiveWeapon()
-	local n = 0
+	-- L'arme en main rangée occupe déjà la première place
+	local n = (IsValid(actif) and A.EstArme(actif) and A.EpeeRangee(actif)) and 1 or 0
 	for classe in pairs(A.Classes) do
 		local w = ply:GetWeapon(classe)
 		if IsValid(w) and w ~= actif and isstring(w.WorldModel) and w.WorldModel ~= "" then
 			local m = modeleCeinture(ply, classe, w.WorldModel)
 			if m then
-				local depart = hanche + LocalToWorld(Vector(C.Avant - n * C.Ecart, C.Cote, C.Haut), angle_zero, vector_origin, corps)
+				local depart, dir = A.PositionCeinture(ply, n)
 				local cfg = w.OrigineEnMain or A.EnMainDefaut
-				local pos, ang = A.AlignerSurLame(m, depart, dir, { Garde = cfg.Garde, Avance = 0, Roulis = C.Roulis, Echelle = cfg.Echelle })
+				local pos, ang
+				if depart then pos, ang = A.AlignerSurLame(m, depart, dir, { Garde = cfg.Garde, Avance = 0, Roulis = C.Roulis, Echelle = cfg.Echelle }) end
 				if pos then
 					m:SetPos(pos)
 					m:SetAngles(ang)

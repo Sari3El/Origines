@@ -97,6 +97,10 @@ Réglage en jeu (console, arme en main, vue à la troisième personne) :
 Si la pointe est du mauvais côté (l'épée tenue par la lame) : le modèle a son origine vers la pointe ;
 mettre Garde = 0.8 (au lieu de 0.2) et vérifier avec origine_epee_debug.
 
+Épée rangée (lame « éteinte » avec R, arme toujours en main) : mise au fourreau, à la ceinture,
+accrochée au bassin et orientée comme le corps (elle ne bouge plus quand on regarde autour de soi).
+Elle reprend sa place en main dès qu'on la sort (R).
+
 Épée à la ceinture : wOS dessine à la taille les armes possédées mais pas en main, avec un
 placement prévu pour un petit manche de sabre. Pour les armes Origine, ce placement est remplacé
 (ORIGINE.Armes.Ceinture dans sh_modele.lua) : à gauche de la taille, pointe vers le bas et l'arrière.
