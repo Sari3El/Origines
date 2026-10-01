@@ -60,6 +60,8 @@ Sans modifier les fichiers chiffrés de wOS :
   appuyé il y a moins de 0,9 s : ORIGINE.Armes.Epee.DureeCoup, ou attaque spéciale de wOS en cours).
   Quelqu'un qui marche dans la lame immobile, ou que la lame traverse quand on se tourne, ne prend rien.
   Les dégâts des pouvoirs du Mage restent normaux.
+- Déplacement : on peut bouger en frappant (SWEP.CanMoveWhileAttacking = true), y compris pendant
+  les coups lourds et les ultimes (le blocage des touches de wOS est retiré pour les armes Origine).
 - Trace des coups : origine_armes règle wOS.ALCS.Config.LightsaberTrace sur
   WOS_ALCS.TRACE.MINIMALINTERP au chargement (la trace suit le trajet de la lame, mais seulement
   pendant les coups). Pour être sûr qu'il soit pris en compte, mettez aussi cette valeur dans

@@ -40,7 +40,7 @@ SWEP.Secondary.Ammo = "none"
 SWEP.PrintName = "Lame du Consortium" -- Nom affiché (provisoire)
 SWEP.Class = "weapon_origine_consortium" -- Nom du fichier de l'arme
 SWEP.DualWielded = false -- Une seule arme en main
-SWEP.CanMoveWhileAttacking = false -- Peut-on bouger en frappant ?
+SWEP.CanMoveWhileAttacking = true -- On peut bouger en frappant
 
 -- Combat (valeurs à équilibrer plus tard)
 SWEP.SaberDamage = 60 -- Dégâts d'un coup (un coup lourd fait 1,5 fois plus)

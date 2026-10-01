@@ -26,7 +26,9 @@ CurTime = function() return TEMPS end
 RENDERGROUP_BOTH = 1
 AddCSLuaFile = function() end
 HOOKS = {}
-hook = { Add = function(ev, id, fn) HOOKS[ev .. "/" .. id] = fn end }
+HOOK_TABLE = { CreateMove = { rb655_lightsaber_no_fall_damage_wos = function() BLOQUE = true end } }
+hook = { Add = function(ev, id, fn) HOOKS[ev .. "/" .. id] = fn HOOK_TABLE[ev] = HOOK_TABLE[ev] or {} HOOK_TABLE[ev][id] = fn end,
+	GetTable = function() return HOOK_TABLE end }
 BASES = { wos_adv_single_lightsaber_base = { Initialize = function(self) self.InitBase = true end,
 	GetSaberPosAng = function(self) return "POS", "DIR" end } }
 baseclass = { Get = function(n) BASES[n] = BASES[n] or {} return BASES[n] end }
@@ -98,6 +100,7 @@ for cle, s in armes.items():
              s.UseLoopSound == s.UseOnSound == s.UseOffSound == s.UseSwingSound == "common/null.wav")
     verifier(f"{cle} : lumière de lame éteinte (noir)", s.UseColor.r == 0 and s.UseColor.g == 0 and s.UseColor.b == 0)
     verifier(f"{cle} : base wOS", s.Base == "wos_adv_single_lightsaber_base")
+    verifier(f"{cle} : on peut bouger en frappant", s.CanMoveWhileAttacking is True)
     verifier(f"{cle} : pas d'icône de sabre dans le sélecteur", s.OrigineSansIcone is True)
     verifier(f"{cle} : rangeable dans l'inventaire", G.ORIGINE.Inv.Autorisees[f"weapon_origine_{cle}"] is True)
 
@@ -219,7 +222,13 @@ rb655_DrawHit_wos = function() IMPACTS = IMPACTS + 1 end
 WOS_ALCS = { TRACE = { INTERP = 3, MINIMALINTERP = 4 } }
 wOS.ALCS.Config = { LightsaberTrace = 3 }
 CLIENT = true
+LocalPlayer = function() return LP end
 HOOKS["InitPostEntity/origine_armes_epee"]()
+local bloc = HOOK_TABLE.CreateMove.rb655_lightsaber_no_fall_damage_wos
+BLOQUE = false LP = PORTEUR bloc({})
+BLOQUE_ORIGINE = BLOQUE
+BLOQUE = false LP = AUTRE bloc({})
+BLOQUE_AUTRE = BLOQUE
 CLIENT = false
 rb655_DrawHit_wos(Vector(20, 0, 0), Vector(1, 0, 0))
 rb655_DrawHit_wos(Vector(3000, 0, 0), Vector(1, 0, 0))
@@ -262,6 +271,8 @@ verifier("sound.Play de sabre près d'une arme : coupé, loin : gardé", liste(G
 verifier("brûlure au mur près de l'arme : retirée (sang gardé)", liste(G.DECALS) == ["FadingScorch", "Blood"], liste(G.DECALS))
 verifier("étincelles près de l'arme : retirées (sang gardé)", liste(G.EFFETS) == ["BloodImpact", "StunstickImpact"], liste(G.EFFETS))
 verifier("impact wOS (client) : retiré près de l'arme, gardé ailleurs, remplacé une seule fois", G.IMPACTS == 2, G.IMPACTS)
+verifier("attaque spéciale : pas de blocage du déplacement avec une arme Origine", G.BLOQUE_ORIGINE is False)
+verifier("autres armes wOS : blocage de wOS gardé", G.BLOQUE_AUTRE is True)
 verifier("trace wOS réglée sur MINIMALINTERP", G.wOS.ALCS.Config.LightsaberTrace == 4)
 verifier("lame immobile qui touche : aucun dégât", G.D_IMMOBILE is True and G.D_IMMOBILE_J is True)
 verifier("clic tenu : dégâts", G.D_CLIC_TENU is None)

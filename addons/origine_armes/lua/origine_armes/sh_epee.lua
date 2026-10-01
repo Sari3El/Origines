@@ -161,9 +161,26 @@ function A.EnTrainDeFrapper(ply)
 	return false
 end
 
+-- Client : wOS bloque les touches et le déplacement pendant les attaques spéciales (coup lourd,
+-- ultime : AttackDelay). Les armes Origine peuvent toujours bouger en frappant
+-- (avec SWEP.CanMoveWhileAttacking = true pour les coups normaux).
+function E.RemplacerBlocageWOS()
+	if not CLIENT then return end
+	local t = hook.GetTable().CreateMove
+	local avant = t and t["rb655_lightsaber_no_fall_damage_wos"]
+	if not avant or avant == E.BlocageOrigine then return end
+	E.BlocageOrigine = function(cmd, ...)
+		local lp = LocalPlayer()
+		if IsValid(lp) and A.PorteArme(lp) then return end
+		return avant(cmd, ...)
+	end
+	hook.Add("CreateMove", "rb655_lightsaber_no_fall_damage_wos", E.BlocageOrigine)
+end
+
 local function apresWOS()
 	E.ReglerTrace()
 	E.RemplacerImpactWOS()
+	E.RemplacerBlocageWOS()
 end
 hook.Add("wOS.ALCS.OnLoaded", "origine_armes_epee", apresWOS)
 hook.Add("wOS.ALCS.PostLoaded", "origine_armes_epee", apresWOS)
