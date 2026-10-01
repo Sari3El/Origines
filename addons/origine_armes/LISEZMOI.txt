@@ -74,31 +74,36 @@ autorun sont chargés par ordre alphabétique, « origine_9d_armes » avant « w
 3. Modèle d'épée : models/peanut/templarsword.mdl
 --------------------------------------------------
 Les 4 armes utilisent ce modèle (SWEP.UseHilt et SWEP.WorldModel dans chaque fichier d'arme).
-Le modèle doit être dans la collection Workshop du serveur (fait).
-wOS fait partir la lame invisible (les touches) :
-- du point d'attache « blade1 » du modèle s'il en a un : tout est alors juste, rien à régler ;
-- sinon de la main du joueur, dans l'axe où l'on tient un manche de sabre.
-Placement du modèle :
-- modèle préparé comme une arme (il a l'os ValveBiped.Bip01_R_Hand) : il se colle tout seul à la main ;
-- modèle d'objet simple : origine_armes le place dans la main avec SWEP.OrigineEnMain
-  (position et angle par rapport à la main, échelle). La valeur fournie est une première estimation.
+Il doit être dans la collection Workshop du serveur (fait).
 
-Réglage en jeu (console, arme en main, en vue à la troisième personne) :
-  origine_epee_debug 1
-      dessine la zone de touche : ligne rouge = la lame invisible (longueur SWEP.UseLength),
-      point jaune = son départ. Elle doit suivre la lame visible de l'épée.
-  origine_epee_placer x y z pitch yaw roll [échelle]
-      déplace l'épée dans la main (aperçu sur votre écran seulement) et affiche la ligne
-      SWEP.OrigineEnMain à recopier dans les 4 fichiers d'arme. Sans argument : affiche la valeur actuelle.
-      Exemple : origine_epee_placer 3.5 -1.2 0 0 0 180
-Ensuite :
-- SWEP.UseLength = la longueur de la lame visible (ligne rouge aussi longue que la lame) ;
-- si la ligne rouge ne part pas dans le sens de la lame (modèle d'objet simple uniquement), ajoutez
-  dans le fichier de l'arme, AVANT la dernière ligne « ORIGINE.Armes.Preparer » :
-      SWEP.OrigineLame = { Debut = Vector( 0, 0, 0 ), Axe = Vector( 0, 0, 1 ) }
-  Debut = départ de la lame (la garde) et Axe = direction de la pointe, dans les coordonnées du
-  modèle (souvent l'axe Z ou X : essayer Vector( 0, 0, 1 ), Vector( 1, 0, 0 ), puis leurs opposés).
-  Les touches suivent alors exactement la lame du modèle.
+Ce modèle n'est pas préparé pour wOS (pas de point « blade1 », pas d'os de main). wOS fait donc
+partir la lame invisible (les touches) de la main, dans l'axe d'un manche de sabre tenu.
+origine_armes (sh_modele.lua) place l'épée SUR CETTE LIGNE : la lame du modèle (son côté le plus
+long, pointe = le bout le plus éloigné de l'origine du modèle) suit la ligne des touches, la garde
+est mise à son départ. L'épée visible et la zone de touche coïncident, dans toutes les postures.
+
+Réglages : SWEP.OrigineEnMain = { Garde = 0.2, Avance = 0, Roulis = 0, Echelle = 1 }
+- Garde   : place de la garde sur la longueur du modèle (0 = pommeau, 1 = pointe). Plus grand =
+            le manche recule dans la main.
+- Avance  : décalage de toute l'épée le long de la lame (unités ; négatif = recule).
+- Roulis  : rotation autour de la lame (degrés), pour mettre le tranchant dans le bon sens.
+- Echelle : taille du modèle.
+Réglage en jeu (console, arme en main, vue à la troisième personne) :
+  origine_epee_debug 1                 ligne rouge = zone de touche (longueur SWEP.UseLength)
+  origine_epee_placer garde avance roulis [échelle]
+      ex. : origine_epee_placer 0.25 0 90
+      aperçu sur votre écran seulement ; affiche la ligne SWEP.OrigineEnMain à recopier dans les
+      4 fichiers d'arme, et la longueur de lame à mettre dans SWEP.UseLength.
+Si la pointe est du mauvais côté (l'épée tenue par la lame) : le modèle a son origine vers la pointe ;
+mettre Garde = 0.8 (au lieu de 0.2) et vérifier avec origine_epee_debug.
+
+Épée à la ceinture : wOS dessine à la taille les armes possédées mais pas en main, avec un
+placement prévu pour un petit manche de sabre. Pour les armes Origine, ce placement est remplacé
+(ORIGINE.Armes.Ceinture dans sh_modele.lua) : à gauche de la taille, pointe vers le bas et l'arrière.
+Réglages : Cote, Avant, Haut, Inclinaison (avec la verticale), Roulis, Ecart (entre deux épées),
+Active = false pour ne plus rien dessiner. Les réglages de wOS (rb655_lightsaber_hiltonbelt,
+wOS.ALCS.Config.StopDrawOnBelt) s'appliquent aussi.
+
 Si une erreur de modèle (ERROR rouge) apparaît : le modèle n'est pas téléchargé par le joueur
 (vérifier la collection Workshop) ou le chemin est faux.
 

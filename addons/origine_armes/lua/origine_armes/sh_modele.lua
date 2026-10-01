@@ -1,18 +1,20 @@
 --[[-----------------------------------------------------------------------
 	Origine du monde — modèle d'épée des armes wOS (partagé)
 
-	wOS dessine le modèle de l'arme (SWEP.UseHilt / SWEP.WorldModel) dans la
-	main du joueur et fait partir la lame (invisible : les touches) :
+	wOS fait partir la lame invisible (les touches) :
 	  - du point d'attache « blade1 » du modèle s'il en a un (modèle préparé
-	    pour wOS : tout est déjà juste) ;
-	  - sinon de la main du joueur, dans l'axe d'un manche de sabre tenu.
-	Un modèle préparé comme une arme (os ValveBiped.Bip01_R_Hand) se colle
-	tout seul à la main. Un modèle d'objet simple (sans cet os) apparaîtrait
-	aux pieds du joueur : ce fichier le place alors dans la main avec
-	SWEP.OrigineEnMain (réglable en jeu avec origine_epee_placer).
-	Option : SWEP.OrigineLame = { Debut = Vector(), Axe = Vector() } fait partir
-	les touches de la vraie lame du modèle (coordonnées du modèle).
-	Aide au réglage : origine_epee_debug 1 dessine la zone de touche.
+	    pour wOS : rien à faire) ;
+	  - sinon de la main du joueur, dans l'axe où l'on tient un manche de sabre
+	    (SWEP:GetSaberPosAng).
+	Un modèle d'épée simple (sans « blade1 » ni os de main) n'est pas placé
+	correctement par wOS. Ce fichier le place ALIGNÉ SUR CETTE LAME : la lame
+	du modèle (son côté le plus long, pointe = le bout le plus loin de l'origine
+	du modèle) suit exactement la ligne des touches, et sa garde est mise au
+	départ de cette ligne. L'épée visible et la zone de touche coïncident donc,
+	quelle que soit la posture.
+	Réglages : SWEP.OrigineEnMain (en jeu : origine_epee_placer, origine_epee_debug 1).
+	L'épée portée à la ceinture (arme possédée mais pas en main) est aussi placée
+	ici, au lieu du placement de wOS prévu pour un petit manche de sabre.
 -------------------------------------------------------------------------]]
 
 ORIGINE = ORIGINE or {}
@@ -21,37 +23,83 @@ local A = ORIGINE.Armes
 
 local OS_MAIN = "ValveBiped.Bip01_R_Hand"
 
--- Le modèle de l'arme a-t-il l'os de la main (préparé comme une arme) ? Mis en cache par modèle.
-function A.ModeleArme(w)
+-- Réglages par défaut (chaque arme peut avoir son SWEP.OrigineEnMain)
+A.EnMainDefaut = {
+	Garde = 0.2,    -- position de la garde sur la longueur du modèle (0 = pommeau, 1 = pointe)
+	Avance = 0,     -- décalage le long de la lame (unités ; négatif = l'épée recule dans la main)
+	Roulis = 0,     -- rotation autour de la lame (degrés : tranchant vers l'avant, à plat...)
+	Echelle = 1,
+}
+-- Épée à la ceinture : à gauche de la taille, pointe vers le bas et l'arrière
+A.Ceinture = {
+	Active = true,
+	Cote = 8,           -- vers la gauche (unités)
+	Avant = 2,          -- vers l'avant
+	Haut = 2,           -- vers le haut
+	Inclinaison = 35,   -- angle de la lame avec la verticale, vers l'arrière (degrés)
+	Roulis = 90,
+	Ecart = 6,          -- décalage entre deux épées portées
+}
+
+---------------------------------------------------------------------------
+-- Axe de la lame d'un modèle, d'après ses dimensions
+---------------------------------------------------------------------------
+-- mins / maxs : boîte du modèle. Renvoie { axe = 1|2|3 (x, y, z), signe = 1|-1, longueur,
+-- pommeau = coordonnée du bout côté poignée }. La lame est le côté le plus long ; la pointe est
+-- le bout le plus éloigné de l'origine du modèle (l'origine est en général vers la poignée).
+function A.AxeDuModele(mins, maxs)
+	local mn, mx = { mins.x, mins.y, mins.z }, { maxs.x, maxs.y, maxs.z }
+	local dims = { mx[1] - mn[1], mx[2] - mn[2], mx[3] - mn[3] }
+	local axe = 1
+	for i = 2, 3 do if dims[i] > dims[axe] then axe = i end end
+	local signe = (mx[axe] >= -mn[axe]) and 1 or -1
+	return { axe = axe, signe = signe, longueur = dims[axe], pommeau = signe > 0 and mn[axe] or mx[axe] }
+end
+
+-- Angle local qui couche l'axe (axe, signe) du modèle sur l'axe X d'un repère
+local ANGLES_AXE = {
+	[1] = { [1] = Angle(0, 0, 0), [-1] = Angle(0, 180, 0) },
+	[2] = { [1] = Angle(0, -90, 0), [-1] = Angle(0, 90, 0) },
+	[3] = { [1] = Angle(90, 0, 0), [-1] = Angle(-90, 0, 0) },
+}
+
+local function axeDe(ent)
+	local mdl = ent:GetModel()
+	if ent.OrigineAxeModele ~= mdl then
+		ent.OrigineAxeModele = mdl
+		local mn, mx = ent:GetModelBounds()
+		ent.OrigineAxe = (mn and mx) and A.AxeDuModele(mn, mx) or nil
+	end
+	return ent.OrigineAxe
+end
+
+-- Place un modèle pour que sa lame suive la direction dir et que sa garde soit en depart.
+-- Renvoie position et angle du modèle.
+function A.AlignerSurLame(ent, depart, dir, cfg)
+	local info = axeDe(ent)
+	if not info then return nil end
+	cfg = cfg or A.EnMainDefaut
+	local echelle = tonumber(cfg.Echelle) or 1
+	local repere = dir:Angle()
+	repere:RotateAroundAxis(dir, tonumber(cfg.Roulis) or 0)
+	local _, angModele = LocalToWorld(vector_origin, ANGLES_AXE[info.axe][info.signe], vector_origin, repere)
+	-- Point de la garde dans le modèle, ramené au départ de la lame
+	local garde = info.pommeau + info.signe * (tonumber(cfg.Garde) or 0.2) * info.longueur
+	local g = garde * echelle
+	local pointGarde = Vector(info.axe == 1 and g or 0, info.axe == 2 and g or 0, info.axe == 3 and g or 0)
+	local decal = LocalToWorld(pointGarde, angle_zero, vector_origin, angModele)
+	local pos = depart - decal + dir * (tonumber(cfg.Avance) or 0)
+	return pos, angModele
+end
+
+-- Le modèle a-t-il ce qu'il faut pour que wOS le place seul ? (point « blade1 » ou os de la main)
+function A.ModeleWOS(w)
 	local mdl = w:GetModel()
 	if w.OrigineModeleTeste ~= mdl then
 		w.OrigineModeleTeste = mdl
-		w.OrigineModeleArme = w:LookupBone(OS_MAIN) ~= nil
-		w.OrigineModeleBlade = (w:LookupAttachment("blade1") or 0) > 0
+		w.OrigineModeleWOS = (w:LookupAttachment("blade1") or 0) > 0 or w:LookupBone(OS_MAIN) ~= nil
 	end
-	return w.OrigineModeleArme, w.OrigineModeleBlade
-end
-
--- Position et angle de l'épée dans la main (nil si le joueur n'a pas de main utilisable).
--- Modèle préparé comme une arme : la main elle-même. Sinon : la main + SWEP.OrigineEnMain.
-function A.PositionEnMain(w)
-	local own = w:GetOwner()
-	if not IsValid(own) then return nil end
-	local idOs = own:LookupBone(OS_MAIN)
-	if not idOs then return nil end
-	local m = own:GetBoneMatrix(idOs)
-	if not m then return nil end
-	local pos, ang = m:GetTranslation(), m:GetAngles()
-	if A.ModeleArme(w) then return pos, ang end
-	local cfg = w.OrigineEnMain or {}
-	return LocalToWorld(cfg.Pos or vector_origin, cfg.Ang or angle_zero, pos, ang)
-end
-
--- Fonction de la base wOS (cherchée au moment de l'appel)
-local function deLaBase(w, nom)
-	local b = baseclass.Get(w.Base)
-	if b and b[nom] then return b[nom] end
-	return w.BaseClass and w.BaseClass[nom]
+	return w.OrigineModeleWOS
 end
 
 ---------------------------------------------------------------------------
@@ -62,123 +110,194 @@ function A.PreparerModele(SWEP)
 		SWEP.WorldModel = SWEP.UseHilt
 		if util and util.PrecacheModel then util.PrecacheModel(SWEP.UseHilt) end
 	end
+end
 
-	-- Touches le long de la vraie lame du modèle (facultatif)
-	if istable(SWEP.OrigineLame) then
-		function SWEP:GetSaberPosAng(num, side, model, ...)
-			local lame = self.OrigineLame
-			if lame and not side and (model == nil or model == self) then
-				local _, blade = A.ModeleArme(self)
-				if not blade then
-					local pos, ang = A.PositionEnMain(self)
-					if pos then
-						local debut = LocalToWorld(lame.Debut or vector_origin, angle_zero, pos, ang)
-						local bout = LocalToWorld(lame.Axe or Vector(0, 0, 1), angle_zero, pos, ang)
-						return debut, (bout - pos):GetNormalized()
-					end
-				end
-			end
-			local f = deLaBase(self, "GetSaberPosAng")
-			if f then return f(self, num, side, model, ...) end
+if not CLIENT then return end
+
+local function echelleModele(ent, e)
+	if e ~= 1 then
+		local mat = Matrix()
+		mat:Scale(Vector(e, e, e))
+		ent:EnableMatrix("RenderMultiply", mat)
+	else
+		ent:DisableMatrix("RenderMultiply")
+	end
+end
+
+---------------------------------------------------------------------------
+-- Épée en main : placée juste avant que wOS la dessine (rendu translucide : les os du
+-- joueur sont prêts). Les fonctions de dessin de wOS ne sont pas remplacées.
+---------------------------------------------------------------------------
+local placees = setmetatable({}, { __mode = "k" })
+
+function A.PlacerEnMain(w)
+	if not w.GetSaberPosAng or A.ModeleWOS(w) then return false end
+	local ok, depart, dir = pcall(w.GetSaberPosAng, w)
+	if not (ok and depart and dir) then return false end
+	local cfg = w.OrigineEnMain or A.EnMainDefaut
+	local pos, ang = A.AlignerSurLame(w, depart, dir, cfg)
+	if not pos then return false end
+	w:SetRenderOrigin(pos)
+	w:SetRenderAngles(ang)
+	echelleModele(w, tonumber(cfg.Echelle) or 1)
+	placees[w] = true
+	return true
+end
+
+hook.Add("PreDrawTranslucentRenderables", "origine_epee_main", function(_, ciel)
+	if ciel then return end
+	for _, p in ipairs(player.GetAll()) do
+		local w = p:GetActiveWeapon()
+		if IsValid(w) and A.EstArme and A.EstArme(w) then A.PlacerEnMain(w) end
+	end
+end)
+
+-- Arme lâchée ou rangée : position normale
+hook.Add("Think", "origine_epee_main", function()
+	for w in pairs(placees) do
+		if not IsValid(w) then
+			placees[w] = nil
+		elseif not IsValid(w:GetOwner()) or w:GetOwner():GetActiveWeapon() ~= w then
+			w:SetRenderOrigin()
+			w:SetRenderAngles()
+			w:DisableMatrix("RenderMultiply")
+			placees[w] = nil
 		end
 	end
+end)
 
+---------------------------------------------------------------------------
+-- Épée à la ceinture
+---------------------------------------------------------------------------
+local fourreaux = {} -- [joueur][classe] = modèle client
+
+local function modeleCeinture(ply, classe, mdl)
+	fourreaux[ply] = fourreaux[ply] or {}
+	local m = fourreaux[ply][classe]
+	if not IsValid(m) then
+		m = ClientsideModel(mdl, RENDERGROUP_OPAQUE)
+		if not IsValid(m) then return nil end
+		m:SetNoDraw(true)
+		fourreaux[ply][classe] = m
+	end
+	if m:GetModel() ~= mdl then m:SetModel(mdl) end
+	return m
 end
 
----------------------------------------------------------------------------
--- Client : modèle d'objet simple placé dans la main, juste avant que wOS le dessine
--- (wOS dessine le modèle pendant le rendu translucide ; les os du joueur sont alors prêts).
--- Les fonctions de dessin de wOS ne sont pas remplacées.
----------------------------------------------------------------------------
-if CLIENT then
-	local placees = setmetatable({}, { __mode = "k" })
-
-	hook.Add("PreDrawTranslucentRenderables", "origine_epee_main", function(_, ciel)
-		if ciel then return end
-		for _, p in ipairs(player.GetAll()) do
-			local w = p:GetActiveWeapon()
-			if IsValid(w) and A.EstArme and A.EstArme(w) and not A.ModeleArme(w) then
-				local pos, ang = A.PositionEnMain(w)
+hook.Add("PostPlayerDraw", "origine_epee_ceinture", function(ply)
+	local C = A.Ceinture
+	if not C.Active or not GetGlobalBool("rb655_lightsaber_hiltonbelt", false) then return end
+	if wOS and wOS.ALCS and wOS.ALCS.Config and wOS.ALCS.Config.StopDrawOnBelt then return end
+	if ply:GetNW2Float("CloakTime", 0) >= CurTime() then return end
+	local idOs = ply:LookupBone("ValveBiped.Bip01_Pelvis")
+	if not idOs then return end
+	local hanche = ply:GetBonePosition(idOs)
+	if not hanche then return end
+	local corps = Angle(0, ply:GetAngles().y, 0)
+	local inc = math.rad(C.Inclinaison)
+	local dir = LocalToWorld(Vector(-math.sin(inc), 0, -math.cos(inc)), angle_zero, vector_origin, corps)
+	local actif = ply:GetActiveWeapon()
+	local n = 0
+	for classe in pairs(A.Classes) do
+		local w = ply:GetWeapon(classe)
+		if IsValid(w) and w ~= actif and isstring(w.WorldModel) and w.WorldModel ~= "" then
+			local m = modeleCeinture(ply, classe, w.WorldModel)
+			if m then
+				local depart = hanche + LocalToWorld(Vector(C.Avant - n * C.Ecart, C.Cote, C.Haut), angle_zero, vector_origin, corps)
+				local cfg = w.OrigineEnMain or A.EnMainDefaut
+				local pos, ang = A.AlignerSurLame(m, depart, dir, { Garde = cfg.Garde, Avance = 0, Roulis = C.Roulis, Echelle = cfg.Echelle })
 				if pos then
-					w:SetRenderOrigin(pos)
-					w:SetRenderAngles(ang)
-					placees[w] = true
-					local e = w.OrigineEnMain and tonumber(w.OrigineEnMain.Echelle) or 1
-					if e ~= 1 then
-						local mat = Matrix()
-						mat:Scale(Vector(e, e, e))
-						w:EnableMatrix("RenderMultiply", mat)
-					else
-						w:DisableMatrix("RenderMultiply")
-					end
+					m:SetPos(pos)
+					m:SetAngles(ang)
+					echelleModele(m, tonumber(cfg.Echelle) or 1)
+					m:SetupBones()
+					m:DrawModel()
+					n = n + 1
 				end
 			end
 		end
-	end)
+	end
+end)
 
-	-- Arme lâchée ou rangée : position normale
-	hook.Add("Think", "origine_epee_main", function()
-		for w in pairs(placees) do
-			if not IsValid(w) then
-				placees[w] = nil
-			elseif not IsValid(w:GetOwner()) or w:GetOwner():GetActiveWeapon() ~= w then
-				w:SetRenderOrigin()
-				w:SetRenderAngles()
-				w:DisableMatrix("RenderMultiply")
-				placees[w] = nil
-			end
+hook.Add("EntityRemoved", "origine_epee_ceinture", function(ent)
+	local t = fourreaux[ent]
+	if not t then return end
+	for _, m in pairs(t) do if IsValid(m) then m:Remove() end end
+	fourreaux[ent] = nil
+end)
+
+-- La ceinture de wOS (prévue pour un manche de sabre) ne dessine plus les armes Origine
+function A.RemplacerCeintureWOS()
+	local t = hook.GetTable().PostPlayerDraw
+	local avant = t and t["wOS.Lightsaber.HolsterDrawing"]
+	if not avant or avant == A.CeintureWOS then return end
+	A.CeintureWOS = function(ply, ...)
+		local general = wOS and wOS.Lightsabers and wOS.Lightsabers.General
+		if not istable(general) then return avant(ply, ...) end
+		local retires = {}
+		for classe in pairs(A.Classes) do
+			if general[classe] ~= nil then retires[classe] = general[classe] general[classe] = nil end
 		end
-	end)
+		local ok, err = pcall(avant, ply, ...)
+		for classe, v in pairs(retires) do general[classe] = v end
+		if not ok then ErrorNoHalt(err .. "\n") end
+	end
+	hook.Add("PostPlayerDraw", "wOS.Lightsaber.HolsterDrawing", A.CeintureWOS)
 end
+hook.Add("InitPostEntity", "origine_epee_ceinture", A.RemplacerCeintureWOS)
+hook.Add("wOS.ALCS.OnLoaded", "origine_epee_ceinture", A.RemplacerCeintureWOS)
 
 ---------------------------------------------------------------------------
--- Client : réglage en jeu
+-- Réglage en jeu
 ---------------------------------------------------------------------------
-if CLIENT then
-	local debug = CreateClientConVar("origine_epee_debug", "0", false, false,
-		"1 = dessine la zone de touche des armes Origine (réglage du modèle d'épée)")
+local debug = CreateClientConVar("origine_epee_debug", "0", false, false,
+	"1 = dessine la zone de touche des armes Origine (réglage du modèle d'épée)")
 
-	local function format(v) return string.format("%.2f, %.2f, %.2f", v[1], v[2], v[3]) end
+-- origine_epee_placer garde avance roulis [échelle] : règle l'épée en main (aperçu local)
+concommand.Add("origine_epee_placer", function(ply, _, args)
+	local w = IsValid(ply) and ply:GetActiveWeapon()
+	if not (IsValid(w) and A.EstArme and A.EstArme(w)) then
+		print("[Origine] Prenez une arme Origine en main.")
+		return
+	end
+	local cfg = table.Copy(w.OrigineEnMain or A.EnMainDefaut)
+	if #args >= 1 then
+		local n = {}
+		for i = 1, 4 do n[i] = tonumber(args[i]) end
+		cfg.Garde = n[1] or cfg.Garde
+		cfg.Avance = n[2] or cfg.Avance
+		cfg.Roulis = n[3] or cfg.Roulis
+		cfg.Echelle = n[4] or cfg.Echelle
+		w.OrigineEnMain = cfg
+		local stockee = weapons.GetStored(w:GetClass())
+		if stockee then stockee.OrigineEnMain = cfg end
+	end
+	if A.ModeleWOS(w) then
+		print("[Origine] Ce modèle est préparé pour wOS (blade1 ou os de main) : wOS le place lui-même.")
+	end
+	print("[Origine] À mettre dans les fichiers d'arme (lua/weapons/weapon_origine_*.lua) :")
+	print(string.format("SWEP.OrigineEnMain = { Garde = %s, Avance = %s, Roulis = %s, Echelle = %s }",
+		tostring(cfg.Garde), tostring(cfg.Avance), tostring(cfg.Roulis), tostring(cfg.Echelle)))
+	local info = axeDe(w)
+	if info then
+		local lame = math.Round((1 - (tonumber(cfg.Garde) or 0.2)) * info.longueur * (tonumber(cfg.Echelle) or 1) + (tonumber(cfg.Avance) or 0))
+		print(string.format("[Origine] Longueur du modèle : %d unités. Lame visible ≈ %d : SWEP.UseLength = %d",
+			math.Round(info.longueur), lame, lame))
+	end
+end, nil, "Règle l'épée Origine en main : garde (0-1) avance roulis [échelle]")
 
-	-- origine_epee_placer x y z pitch yaw roll [échelle] : place l'épée dans la main (aperçu local)
-	concommand.Add("origine_epee_placer", function(ply, _, args)
-		local w = IsValid(ply) and ply:GetActiveWeapon()
-		if not (IsValid(w) and A.EstArme and A.EstArme(w)) then
-			print("[Origine] Prenez une arme Origine en main.")
-			return
-		end
-		local cfg = w.OrigineEnMain or {}
-		if #args >= 6 then
-			local n = {}
-			for i = 1, 7 do n[i] = tonumber(args[i]) end
-			for i = 1, 6 do if not n[i] then print("[Origine] Nombres attendus : x y z pitch yaw roll [échelle]") return end end
-			cfg = { Pos = Vector(n[1], n[2], n[3]), Ang = Angle(n[4], n[5], n[6]), Echelle = n[7] or cfg.Echelle or 1 }
-			w.OrigineEnMain = cfg
-			local stockee = weapons.GetStored(w:GetClass())
-			if stockee then stockee.OrigineEnMain = cfg end
-		end
-		local arme = A.ModeleArme(w)
-		if arme then
-			print("[Origine] Ce modèle est préparé comme une arme : il se place tout seul, OrigineEnMain n'est pas utilisé.")
-		end
-		print("[Origine] À mettre dans le fichier de l'arme (lua/weapons/" .. w:GetClass() .. ".lua) :")
-		print(string.format("SWEP.OrigineEnMain = { Pos = Vector( %s ), Ang = Angle( %s ), Echelle = %s }",
-			format(cfg.Pos or vector_origin), format(cfg.Ang or angle_zero), tostring(cfg.Echelle or 1)))
-	end, nil, "Place l'épée Origine dans la main : x y z pitch yaw roll [échelle]")
-
-	-- Zone de touche : ligne rouge de la longueur SWEP.UseLength, depuis le départ de la lame
-	hook.Add("PostDrawTranslucentRenderables", "origine_epee_debug", function(_, ciel)
-		if ciel or not debug:GetBool() then return end
-		for _, p in ipairs(player.GetAll()) do
-			local w = p:GetActiveWeapon()
-			if IsValid(w) and A.EstArme and A.EstArme(w) and w.GetSaberPosAng then
-				local ok, pos, dir = pcall(w.GetSaberPosAng, w)
-				if ok and pos and dir then
-					local long = tonumber(w.UseLength) or 42
-					render.DrawLine(pos, pos + dir * long, Color(255, 60, 60), false)
-					render.DrawWireframeSphere(pos, 1, 6, 6, Color(255, 220, 60), false)
-				end
+-- Zone de touche : ligne rouge de la longueur SWEP.UseLength, depuis le départ de la lame
+hook.Add("PostDrawTranslucentRenderables", "origine_epee_debug", function(_, ciel)
+	if ciel or not debug:GetBool() then return end
+	for _, p in ipairs(player.GetAll()) do
+		local w = p:GetActiveWeapon()
+		if IsValid(w) and A.EstArme and A.EstArme(w) and w.GetSaberPosAng then
+			local ok, pos, dir = pcall(w.GetSaberPosAng, w)
+			if ok and pos and dir then
+				local long = tonumber(w.UseLength) or 42
+				render.DrawLine(pos, pos + dir * long, Color(255, 60, 60), false)
+				render.DrawWireframeSphere(pos, 1, 6, 6, Color(255, 220, 60), false)
 			end
 		end
-	end)
-end
+	end
+end)

@@ -102,7 +102,7 @@ for cle, s in armes.items():
 
 for cle, s in armes.items():
     verifier(f"{cle} : modèle d'épée templarsword", s.UseHilt == s.WorldModel == "models/peanut/templarsword.mdl")
-    verifier(f"{cle} : placement en main réglable", s.OrigineEnMain is not None and s.OrigineEnMain.Pos is not None)
+    verifier(f"{cle} : placement en main réglable", s.OrigineEnMain is not None and s.OrigineEnMain.Garde == 0.2)
     verifier(f"{cle} : dessin wOS non remplacé", s.DrawWorldModelTranslucent is None and s.GetSaberPosAng is None)
 verifier("modèle préchargé", G.PRECACHE["models/peanut/templarsword.mdl"] is True)
 
@@ -264,23 +264,16 @@ verifier("pouvoir utilisé à l'instant : dégâts gardés", G.D_POUVOIR is None
 verifier("dégâts d'autre chose (objet) : non touchés", G.D_OBJET is None)
 verifier("joueur sans arme Origine : non touché", G.D_SANS_ARME is None)
 
-# --- Placement du modèle dans la main (sh_modele.lua) ---
+# --- Axe de la lame d'après la boîte du modèle (sh_modele.lua) ---
 lua.execute(r"""
-LocalToWorld = function(lp, la, p, a) return Vector(p.x + lp.x, p.y + lp.y, p.z + lp.z), Angle(a.p + la.p, a.y + la.y, a.r + la.r) end
-local MAIN = { GetTranslation = function() return Vector(10, 0, 50) end, GetAngles = function() return Angle(0, 90, 0) end }
-local own = { LookupBone = function() return 5 end, GetBoneMatrix = function() return MAIN end }
-local function arme(os)
-	return { GetOwner = function() return own end, GetModel = function() return "m" .. tostring(os) end,
-		LookupBone = function() return os end, LookupAttachment = function() return 0 end,
-		OrigineEnMain = { Pos = Vector(1, 2, 3), Ang = Angle(0, 0, 180) } }
-end
-local p1, a1 = ORIGINE.Armes.PositionEnMain(arme(nil))
-OBJ = { p1.x, p1.y, p1.z, a1.r }
-local p2, a2 = ORIGINE.Armes.PositionEnMain(arme(3))
-RIG = { p2.x, p2.y, p2.z, a2.r }
+local function ax(a, b) local r = ORIGINE.Armes.AxeDuModele(a, b) return { r.axe, r.signe, r.longueur, r.pommeau } end
+AX1 = ax(Vector(-1, -2, -8), Vector(1, 2, 40))    -- lame vers +Z, pommeau à -8
+AX2 = ax(Vector(-45, -1, -3), Vector(6, 1, 3))    -- lame vers -X, pommeau à 6
+AX3 = ax(Vector(-2, -10, -1), Vector(2, 50, 1))   -- lame vers +Y
 """)
-verifier("modèle d'objet simple : main + OrigineEnMain", liste(G.OBJ) == [11, 2, 53, 180], liste(G.OBJ))
-verifier("modèle préparé comme une arme : main seule", liste(G.RIG) == [10, 0, 50, 0], liste(G.RIG))
+verifier("axe de lame : +Z", liste(G.AX1) == [3, 1, 48, -8], liste(G.AX1))
+verifier("axe de lame : -X", liste(G.AX2) == [1, -1, 51, 6], liste(G.AX2))
+verifier("axe de lame : +Y", liste(G.AX3) == [2, 1, 60, -10], liste(G.AX3))
 
 print(f"\n{total - echecs}/{total} tests réussis")
 sys.exit(1 if echecs else 0)

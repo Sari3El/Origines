@@ -72,9 +72,10 @@ SWEP.PersonalLightsaber = false
 SWEP.UseHilt = "models/peanut/templarsword.mdl" -- Modèle de l'épée (mettre aussi dans SWEP.WorldModel)
 SWEP.UseLength = 42 -- Portée de la lame (touches) : à régler sur la longueur de la lame du modèle
 
--- Placement de l'épée dans la main, utilisé seulement si le modèle n'est pas préparé comme une arme
--- (pas d'os ValveBiped.Bip01_R_Hand) : à régler en jeu avec origine_epee_placer (voir LISEZMOI.txt)
-SWEP.OrigineEnMain = { Pos = Vector( 3.5, -1.2, 0 ), Ang = Angle( 0, 0, 180 ), Echelle = 1 }
+-- Épée en main : sa lame est alignée sur la ligne des touches de wOS (voir LISEZMOI.txt, partie 3).
+-- Garde = place de la garde sur le modèle (0 = pommeau, 1 = pointe), Avance = décalage le long de la
+-- lame (négatif = recule), Roulis = rotation autour de la lame. Réglage en jeu : origine_epee_placer
+SWEP.OrigineEnMain = { Garde = 0.2, Avance = 0, Roulis = 0, Echelle = 1 }
 SWEP.UseWidth = 1
 SWEP.UseColor = Color( 0, 0, 0 ) -- Noir : la lumière dynamique de la lame n'éclaire rien
 SWEP.UseDarkInner = 1
