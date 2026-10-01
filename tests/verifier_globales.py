@@ -33,7 +33,7 @@ RunConsoleCommand cookie gui input SetClipboardText MOUSE_RIGHT KEY_ENTER KEY_PA
 CloseDermaMenus Derma_StringRequest GetConVar RealTime CHAN_STATIC IN_ATTACK
 MATERIAL_FOG_LINEAR StormFox2 LerpVector engine DrawColorModify DMG_SLOWBURN ACT_HL2MP_ZOMBIE_SLUMP_IDLE
 IN_ATTACK2 IN_RELOAD IN_SPEED ulx KEY_F6 KEY_F7 HTTP
-RENDERGROUP_BOTH killicon baseclass wOS WOS_ALCS sound rb655_DrawHit_wos
+RENDERGROUP_BOTH killicon baseclass wOS WOS_ALCS sound rb655_DrawHit_wos CreateClientConVar LocalToWorld angle_zero vector_origin
 """.split())
 
 

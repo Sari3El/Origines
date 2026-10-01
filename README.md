@@ -297,6 +297,8 @@ Comportement d'épée (`origine_armes/sh_epee.lua`) : tous les sons de sabre las
 balancement, impacts, chocs entre lames ; les sons des pouvoirs restent), plus de brûlure ni d'étincelles sur
 les murs, et la lame ne blesse que pendant un vrai coup (pas au simple contact d'une lame immobile).
 La trace wOS est réglée sur `MINIMALINTERP` (à reporter aussi dans le `sv_config.lua` de wOS).
+Modèle d'épée `models/peanut/templarsword.mdl` (`origine_armes/sh_modele.lua`) : placé dans la main s'il n'est pas préparé
+comme une arme ; réglage en jeu avec `origine_epee_debug 1` et `origine_epee_placer` (voir le LISEZMOI).
 
 ## Pour les autres addons
 

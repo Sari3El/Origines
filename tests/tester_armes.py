@@ -40,14 +40,19 @@ local VMT = {}
 VMT.__index = VMT
 function VMT:DistToSqr(o) local dx, dy, dz = self.x - o.x, self.y - o.y, self.z - o.z return dx * dx + dy * dy + dz * dz end
 Vector = function(x, y, z) return setmetatable({ x = x, y = y, z = z }, VMT) end
+Angle = function(p, y, r) return { p = p, y = y, r = r } end
+vector_origin, angle_zero = Vector(0, 0, 0), Angle(0, 0, 0)
+PRECACHE = {}
 JOUEURS = {}
 player = { GetAll = function() return JOUEURS end }
 isfunction = function(v) return type(v) == "function" end
 SONS_CREES, SONS_JOUES, DECALS, EFFETS = {}, {}, {}, {}
 CreateSound = function(ent, nom) SONS_CREES[#SONS_CREES + 1] = nom return { nom = nom } end
 sound = { Play = function(nom) SONS_JOUES[#SONS_JOUES + 1] = nom end }
-util = { Decal = function(nom) DECALS[#DECALS + 1] = nom end, Effect = function(nom) EFFETS[#EFFETS + 1] = nom end }
+util = { Decal = function(nom) DECALS[#DECALS + 1] = nom end, Effect = function(nom) EFFETS[#EFFETS + 1] = nom end,
+	PrecacheModel = function(m) PRECACHE[m] = true end }
 """)
+lua.execute((racine / "origine_armes" / "sh_modele.lua").read_text(encoding="utf-8"))
 lua.execute((racine / "origine_armes" / "sh_armes.lua").read_text(encoding="utf-8"))
 lua.execute((racine / "origine_armes" / "sh_epee.lua").read_text(encoding="utf-8"))
 
@@ -94,6 +99,12 @@ for cle, s in armes.items():
     verifier(f"{cle} : base wOS", s.Base == "wos_adv_single_lightsaber_base")
     verifier(f"{cle} : pas d'icône de sabre dans le sélecteur", s.OrigineSansIcone is True)
     verifier(f"{cle} : rangeable dans l'inventaire", G.ORIGINE.Inv.Autorisees[f"weapon_origine_{cle}"] is True)
+
+for cle, s in armes.items():
+    verifier(f"{cle} : modèle d'épée templarsword", s.UseHilt == s.WorldModel == "models/peanut/templarsword.mdl")
+    verifier(f"{cle} : placement en main réglable", s.OrigineEnMain is not None and s.OrigineEnMain.Pos is not None)
+    verifier(f"{cle} : dessin wOS non remplacé", s.DrawWorldModelTranslucent is None and s.GetSaberPosAng is None)
+verifier("modèle préchargé", G.PRECACHE["models/peanut/templarsword.mdl"] is True)
 
 for cle in ("nuit", "empire", "consortium"):
     s = armes[cle]
@@ -252,6 +263,24 @@ verifier("attaque spéciale wOS en cours : dégâts", G.D_SPECIALE is None)
 verifier("pouvoir utilisé à l'instant : dégâts gardés", G.D_POUVOIR is None)
 verifier("dégâts d'autre chose (objet) : non touchés", G.D_OBJET is None)
 verifier("joueur sans arme Origine : non touché", G.D_SANS_ARME is None)
+
+# --- Placement du modèle dans la main (sh_modele.lua) ---
+lua.execute(r"""
+LocalToWorld = function(lp, la, p, a) return Vector(p.x + lp.x, p.y + lp.y, p.z + lp.z), Angle(a.p + la.p, a.y + la.y, a.r + la.r) end
+local MAIN = { GetTranslation = function() return Vector(10, 0, 50) end, GetAngles = function() return Angle(0, 90, 0) end }
+local own = { LookupBone = function() return 5 end, GetBoneMatrix = function() return MAIN end }
+local function arme(os)
+	return { GetOwner = function() return own end, GetModel = function() return "m" .. tostring(os) end,
+		LookupBone = function() return os end, LookupAttachment = function() return 0 end,
+		OrigineEnMain = { Pos = Vector(1, 2, 3), Ang = Angle(0, 0, 180) } }
+end
+local p1, a1 = ORIGINE.Armes.PositionEnMain(arme(nil))
+OBJ = { p1.x, p1.y, p1.z, a1.r }
+local p2, a2 = ORIGINE.Armes.PositionEnMain(arme(3))
+RIG = { p2.x, p2.y, p2.z, a2.r }
+""")
+verifier("modèle d'objet simple : main + OrigineEnMain", liste(G.OBJ) == [11, 2, 53, 180], liste(G.OBJ))
+verifier("modèle préparé comme une arme : main seule", liste(G.RIG) == [10, 0, 50, 0], liste(G.RIG))
 
 print(f"\n{total - echecs}/{total} tests réussis")
 sys.exit(1 if echecs else 0)

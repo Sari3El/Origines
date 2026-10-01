@@ -9,6 +9,7 @@ lua/weapons/weapon_origine_consortium.lua  Lame du Consortium    (Consortium)   
 lua/weapons/weapon_origine_mage.lua        Lame du Mage          (Mage)                  Tous les pouvoirs et tous les ultimes
 lua/origine_armes/sh_armes.lua             Commun aux 4 armes (lame invisible, listes du Mage, cooldowns, races)
 lua/origine_armes/sh_epee.lua              Comportement d'épée : sons, traces au mur, dégâts au contact (partie 2)
+lua/origine_armes/sh_modele.lua            Modèle d'épée : placement dans la main, réglage en jeu (partie 3)
 materials/origine_armes/lame_invisible.*   Matériau entièrement transparent de la lame
 
 Catégories du menu des armes : « Origine Créatures de la nuit Weapon », « Origine Empire Weapon »,
@@ -70,15 +71,36 @@ ORIGINE.Armes.Epee.Portee). origine_armes doit être chargé avant wOS (c'est le
 autorun sont chargés par ordre alphabétique, « origine_9d_armes » avant « wos_... »).
 
 
-3. Remplacer le manche par une vraie épée (plus tard)
------------------------------------------------------
-Chaque modèle d'épée doit être préparé comme un manche wOS :
-- un point d'attache nommé  blade1  sur l'os  ValveBiped.Bip01_R_Hand ,
-- placé à la garde de l'épée et orienté vers la pointe.
-Puis, dans le fichier de l'arme :
-- SWEP.UseHilt et SWEP.WorldModel = le chemin du modèle de l'épée ;
-- SWEP.UseLength = la longueur de la lame du modèle (en unités), pour que la zone de touche
-  corresponde à l'épée visible.
+3. Modèle d'épée : models/peanut/templarsword.mdl
+--------------------------------------------------
+Les 4 armes utilisent ce modèle (SWEP.UseHilt et SWEP.WorldModel dans chaque fichier d'arme).
+Le modèle doit être dans la collection Workshop du serveur (fait).
+wOS fait partir la lame invisible (les touches) :
+- du point d'attache « blade1 » du modèle s'il en a un : tout est alors juste, rien à régler ;
+- sinon de la main du joueur, dans l'axe où l'on tient un manche de sabre.
+Placement du modèle :
+- modèle préparé comme une arme (il a l'os ValveBiped.Bip01_R_Hand) : il se colle tout seul à la main ;
+- modèle d'objet simple : origine_armes le place dans la main avec SWEP.OrigineEnMain
+  (position et angle par rapport à la main, échelle). La valeur fournie est une première estimation.
+
+Réglage en jeu (console, arme en main, en vue à la troisième personne) :
+  origine_epee_debug 1
+      dessine la zone de touche : ligne rouge = la lame invisible (longueur SWEP.UseLength),
+      point jaune = son départ. Elle doit suivre la lame visible de l'épée.
+  origine_epee_placer x y z pitch yaw roll [échelle]
+      déplace l'épée dans la main (aperçu sur votre écran seulement) et affiche la ligne
+      SWEP.OrigineEnMain à recopier dans les 4 fichiers d'arme. Sans argument : affiche la valeur actuelle.
+      Exemple : origine_epee_placer 3.5 -1.2 0 0 0 180
+Ensuite :
+- SWEP.UseLength = la longueur de la lame visible (ligne rouge aussi longue que la lame) ;
+- si la ligne rouge ne part pas dans le sens de la lame (modèle d'objet simple uniquement), ajoutez
+  dans le fichier de l'arme, AVANT la dernière ligne « ORIGINE.Armes.Preparer » :
+      SWEP.OrigineLame = { Debut = Vector( 0, 0, 0 ), Axe = Vector( 0, 0, 1 ) }
+  Debut = départ de la lame (la garde) et Axe = direction de la pointe, dans les coordonnées du
+  modèle (souvent l'axe Z ou X : essayer Vector( 0, 0, 1 ), Vector( 1, 0, 0 ), puis leurs opposés).
+  Les touches suivent alors exactement la lame du modèle.
+Si une erreur de modèle (ERROR rouge) apparaît : le modèle n'est pas téléchargé par le joueur
+(vérifier la collection Workshop) ou le chemin est faux.
 
 
 4. La Lame du Mage

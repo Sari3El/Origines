@@ -80,6 +80,9 @@ function A.Preparer(SWEP)
 	-- Sélecteur d'armes Origine : pas d'icône de sabre laser, seulement le nom
 	SWEP.OrigineSansIcone = true
 
+	-- Modèle d'épée (sh_modele.lua) : placement dans la main si besoin
+	if A.PreparerModele then A.PreparerModele(SWEP) end
+
 	-- Cooldown sous la carte du sélecteur : wOS garde le temps restant du pouvoir
 	-- sélectionné dans GetForceCooldown() (en secondes), et sa durée dans .cooldown
 	function SWEP:OrigineCooldowns()

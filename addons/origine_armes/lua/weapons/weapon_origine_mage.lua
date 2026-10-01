@@ -25,7 +25,7 @@ SWEP.AutoSwitchTo = false
 SWEP.AutoSwitchFrom = false
 SWEP.DrawWeaponInfoBox = false
 SWEP.ViewModel = "models/weapons/v_crowbar.mdl"
-SWEP.WorldModel = "models/sgg/starwars/weapons/w_common_jedi_saber_hilt.mdl"
+SWEP.WorldModel = "models/peanut/templarsword.mdl"
 SWEP.ViewModelFOV = 55
 SWEP.Primary.ClipSize = -1
 SWEP.Primary.DefaultClip = -1
@@ -68,9 +68,13 @@ SWEP.UseForms = false
 SWEP.UseSkills = false
 SWEP.PersonalLightsaber = false
 
--- Manche (le même modèle simple pour les 4 armes) et lame
-SWEP.UseHilt = "models/sgg/starwars/weapons/w_common_jedi_saber_hilt.mdl" -- Modèle du manche
-SWEP.UseLength = 42 -- Longueur de la lame : invisible, mais la portée et les touches restent
+-- Modèle de l'épée (le même pour les 4 armes) et lame invisible qui sert aux touches
+SWEP.UseHilt = "models/peanut/templarsword.mdl" -- Modèle de l'épée (mettre aussi dans SWEP.WorldModel)
+SWEP.UseLength = 42 -- Portée de la lame (touches) : à régler sur la longueur de la lame du modèle
+
+-- Placement de l'épée dans la main, utilisé seulement si le modèle n'est pas préparé comme une arme
+-- (pas d'os ValveBiped.Bip01_R_Hand) : à régler en jeu avec origine_epee_placer (voir LISEZMOI.txt)
+SWEP.OrigineEnMain = { Pos = Vector( 3.5, -1.2, 0 ), Ang = Angle( 0, 0, 180 ), Echelle = 1 }
 SWEP.UseWidth = 1
 SWEP.UseColor = Color( 0, 0, 0 ) -- Noir : la lumière dynamique de la lame n'éclaire rien
 SWEP.UseDarkInner = 1
