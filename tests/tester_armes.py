@@ -42,6 +42,11 @@ IN_ATTACK, IN_ATTACK2 = 1, 2048
 local VMT = {}
 VMT.__index = VMT
 function VMT:DistToSqr(o) local dx, dy, dz = self.x - o.x, self.y - o.y, self.z - o.z return dx * dx + dy * dy + dz * dz end
+function VMT:Length() return math.sqrt(self.x * self.x + self.y * self.y + self.z * self.z) end
+function VMT:Dot(o) return self.x * o.x + self.y * o.y + self.z * o.z end
+VMT.__add = function(a, b) return Vector(a.x + b.x, a.y + b.y, a.z + b.z) end
+VMT.__sub = function(a, b) return Vector(a.x - b.x, a.y - b.y, a.z - b.z) end
+VMT.__mul = function(a, k) return Vector(a.x * k, a.y * k, a.z * k) end
 Vector = function(x, y, z) return setmetatable({ x = x, y = y, z = z }, VMT) end
 Angle = function(p, y, r) return { p = p, y = y, r = r } end
 vector_origin, angle_zero = Vector(0, 0, 0), Angle(0, 0, 0)
@@ -106,15 +111,34 @@ for cle, s in armes.items():
 
 for cle, s in armes.items():
     verifier(f"{cle} : modèle d'épée templarsword", s.UseHilt == s.WorldModel == "models/peanut/templarsword.mdl")
-    verifier(f"{cle} : placement en main réglable", s.OrigineEnMain is not None and s.OrigineEnMain.Garde == 0.2 and s.OrigineEnMain.Avance == -5)
+    verifier(f"{cle} : placement en main réglable", s.OrigineEnMain is not None and s.OrigineEnMain.Garde == 0.2 and s.OrigineEnMain.Avance == 0 and s.OrigineEnMain.DeuxMains is True)
     verifier(f"{cle} : dessin wOS non remplacé", s.DrawWorldModelTranslucent is None)
 lua.execute(r"""
-local inst = setmetatable({ OrigineEnMain = { Tangage = 0, Lacet = 0 }, GetModel = function() return "m" end,
+local inst = setmetatable({ OrigineEnMain = { Tangage = 0, Lacet = 0 }, GetOwner = function() return nil end, GetModel = function() return "m" end,
 	LookupAttachment = function() return 0 end, LookupBone = function() return nil end },
 	{ __index = STOCKEES["weapon_origine_empire"] })
 SPA_POS, SPA_DIR = inst:GetSaberPosAng()
 """)
 verifier("ligne des touches : celle de wOS sans inclinaison", G.SPA_POS == "POS" and G.SPA_DIR == "DIR")
+lua.execute(r"""
+-- Deux mains sur la poignée : main droite en haut (z = 40), main gauche dessous (z = 34)
+local function mat(p) return { GetTranslation = function() return p end,
+	GetAngles = function() return { Forward = function() return Vector(1, 0, 0) end } end } end
+local os = { ["ValveBiped.Bip01_R_Hand"] = 1, ["ValveBiped.Bip01_L_Hand"] = 2 }
+MAINS = { [1] = Vector(0, 0, 40), [2] = Vector(0, 0, 34) }
+local own = { LookupBone = function(_, n) return os[n] end, GetBoneMatrix = function(_, i) return mat(MAINS[i]) end }
+local w = { GetOwner = function() return own end, OrigineEnMain = { Paume = 0, Prise = 2, EcartMains = 14 } }
+local p, d = ORIGINE.Armes.LigneEpee(w, Vector(9, 9, 9), Vector(0.2, 0, 0.98))
+L2 = { p.x, p.y, p.z, d.x, d.y, d.z }
+p, d = ORIGINE.Armes.LigneEpee(w, Vector(9, 9, 9), Vector(0, 0, -1))
+L2B = { p.z, d.z }
+MAINS[2] = Vector(30, 0, 0)
+p, d = ORIGINE.Armes.LigneEpee(w, Vector(9, 9, 9), Vector(1, 0, 0))
+L1 = { p.x, p.y, p.z, d.x }
+""")
+verifier("deux mains : poignée dans les deux paumes, garde au-dessus de la main du haut", liste(G.L2) == [0, 0, 42, 0, 0, 1], liste(G.L2))
+verifier("deux mains : pointe du côté de la ligne wOS", liste(G.L2B) == [32, -1], liste(G.L2B))
+verifier("une main : depuis la paume droite, direction wOS", liste(G.L1) == [2, 0, 40, 1], liste(G.L1))
 verifier("modèle préchargé", G.PRECACHE["models/peanut/templarsword.mdl"] is True)
 
 for cle in ("nuit", "empire", "consortium"):

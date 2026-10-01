@@ -32,7 +32,48 @@ A.EnMainDefaut = {
 	Echelle = 1,
 	Tangage = 0,    -- inclinaison de la lame vers l'avant / l'arrière (degrés) : touches comprises
 	Lacet = 0,      -- inclinaison de la lame vers la gauche / la droite (degrés) : touches comprises
+	DeuxMains = true, -- tenue à deux mains : la poignée passe par les deux paumes
+	EcartMains = 14,  -- au-delà (unités entre les paumes), une seule main tient l'épée
+	Paume = 3.5,      -- distance du poignet au creux de la main, le long de la main (unités)
+	Prise = 2,        -- de la main du haut à la garde (unités)
 }
+
+-- Creux de la main d'un joueur (l'os de la main est au poignet)
+local function paume(ply, nomOs, cfg)
+	local id = ply:LookupBone(nomOs)
+	if not id then return nil end
+	local m = ply:GetBoneMatrix(id)
+	if not m then return nil end
+	local d = tonumber(cfg.Paume) or 3.5
+	return m:GetTranslation() + m:GetAngles():Forward() * d
+end
+
+-- Ligne de l'épée tenue : départ (garde) et direction de la lame.
+-- À deux mains : la poignée passe par les deux paumes, la lame part de la main du haut.
+-- À une main : depuis la paume de la main droite, dans la direction de wOS.
+-- dirWOS = direction de la ligne de wOS (sert à savoir de quel côté est la pointe).
+function A.LigneEpee(w, posWOS, dirWOS)
+	local own = w:GetOwner()
+	if not (IsValid(own) and dirWOS) then return posWOS, dirWOS end
+	local cfg = w.OrigineEnMain or A.EnMainDefaut
+	local prise = tonumber(cfg.Prise) or 2
+	local droite = paume(own, "ValveBiped.Bip01_R_Hand", cfg)
+	if not droite then return posWOS, dirWOS end
+	if cfg.DeuxMains ~= false then
+		local gauche = paume(own, "ValveBiped.Bip01_L_Hand", cfg)
+		if gauche then
+			local d = droite - gauche
+			local ecart = d:Length()
+			if ecart > 1 and ecart <= (tonumber(cfg.EcartMains) or 14) then
+				d = d * (1 / ecart)
+				if d:Dot(dirWOS) < 0 then d = d * -1 end
+				local haut = droite:Dot(d) >= gauche:Dot(d) and droite or gauche
+				return haut + d * prise, d
+			end
+		end
+	end
+	return droite + dirWOS * prise, dirWOS
+end
 -- Épée à la ceinture : à gauche de la taille, pointe vers le bas et l'arrière
 A.Ceinture = {
 	Active = true,
@@ -125,14 +166,15 @@ function A.PreparerModele(SWEP)
 		if util and util.PrecacheModel then util.PrecacheModel(SWEP.UseHilt) end
 	end
 
-	-- Ligne des touches de wOS, inclinée comme l'épée visible (Tangage / Lacet de OrigineEnMain).
-	-- Sans inclinaison, c'est exactement la ligne de wOS.
+	-- Ligne des touches : celle de l'épée tenue (A.LigneEpee : dans les mains), inclinée par
+	-- Tangage / Lacet. L'épée visible est posée sur cette même ligne.
 	function SWEP:GetSaberPosAng(num, side, model, ...)
 		local b = baseclass.Get(self.Base)
 		local f = (b and b.GetSaberPosAng) or (self.BaseClass and self.BaseClass.GetSaberPosAng)
 		if not f then return end
 		local pos, dir = f(self, num, side, model, ...)
 		if pos and dir and not side and (model == nil or model == self) and not A.ModeleWOS(self) then
+			pos, dir = A.LigneEpee(self, pos, dir)
 			dir = A.Incliner(dir, self.OrigineEnMain)
 		end
 		return pos, dir
