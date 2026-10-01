@@ -145,6 +145,27 @@ SANS = { p, d }
 """)
 verifier("DeuxMains = false : ligne de wOS telle quelle", liste(G.SANS) == ["P", "D"])
 verifier("une main : depuis la paume droite, direction wOS", liste(G.L1) == [2, 0, 40, 1], liste(G.L1))
+lua.execute(r"""
+math.NormalizeAngle = math.NormalizeAngle or function(a) return (a + 180) % 360 - 180 end
+math.Clamp = math.Clamp or function(v, a, b) return math.max(a, math.min(b, v)) end
+local AngleAvant = Angle
+Angle = function(p, y, r)
+	local t = AngleAvant(p, y, r)
+	t.Right = function() return Vector(math.sin(math.rad(y)), -math.cos(math.rad(y)), 0) end
+	return t
+end
+local own = { EyeAngles = function() return { y = 0 } end }
+local w = { GetOwner = function() return own end }
+-- Lame penchée nettement vers +X : droite = celle de dir:Angle() (0, -1, 0)
+local r1 = ORIGINE.Armes.DroiteLissee(w, Vector(0.3, 0, 0.95), "t")
+-- Presque verticale avec un petit bruit vers -X : la droite ne bascule pas
+local r2 = ORIGINE.Armes.DroiteLissee(w, Vector(-0.005, 0.001, 1), "t")
+local r3 = ORIGINE.Armes.DroiteLissee(w, Vector(0.004, -0.003, 1), "t")
+DL = { math.floor(r1.y + 0.5), math.floor(r2.y + 0.5), math.floor(r3.y + 0.5) }
+Angle = AngleAvant
+""")
+verifier("droite lissée : comme dir:Angle() quand la lame penche", G.DL[1] == -1, liste(G.DL))
+verifier("droite lissée : ne bascule pas quand la lame est presque verticale", liste(G.DL) == [-1, -1, -1], liste(G.DL))
 verifier("modèle préchargé", G.PRECACHE["models/peanut/templarsword.mdl"] is True)
 
 for cle in ("nuit", "empire", "consortium"):

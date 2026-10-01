@@ -120,16 +120,36 @@ end
 
 -- Place un modèle pour que sa lame suive la direction dir et que sa garde soit en depart.
 -- Renvoie position et angle du modèle.
--- Droite du corps du joueur (horizontale) : repère stable pour orienter la lame.
--- (dir:Angle() se base sur la verticale du monde : instable quand la lame est presque verticale,
--- l'épée basculait alors de gauche à droite.)
-function A.DroiteCorps(ply)
-	if not IsValid(ply) then return nil end
-	local a = (CLIENT and ply.GetRenderAngles) and ply:GetRenderAngles() or ply:EyeAngles()
-	return Angle(0, a.y, 0):Right()
+-- Droite de la lame, comme dir:Angle() (orientation d'origine), mais lissée.
+-- dir:Angle() prend la direction horizontale de la lame : quand la lame est presque verticale, cette
+-- direction est minuscule et change d'un coup au moindre mouvement (l'épée basculait de gauche à
+-- droite). On garde donc cette direction (par rapport au corps) et on ne la suit que lorsqu'elle
+-- est nette. Quand elle est nette, le résultat est exactement celui de dir:Angle().
+function A.DroiteLissee(w, dir, cle)
+	local own = IsValid(w) and w:GetOwner()
+	if not IsValid(own) then return nil end
+	local a = (CLIENT and own.GetRenderAngles) and own:GetRenderAngles() or own:EyeAngles()
+	local corps = a.y
+	local hx, hy = dir.x, dir.y
+	local long = math.sqrt(hx * hx + hy * hy)
+	w.OrigineLacets = w.OrigineLacets or {}
+	local lisse = w.OrigineLacets[cle]
+	if long > 0.02 then
+		local lacet = math.NormalizeAngle(math.deg(math.atan2(hy, hx)) - corps)
+		if not lisse then
+			lisse = lacet
+		else
+			-- Nette (lame penchée de plus de ~6°) : suivie aussitôt ; presque verticale : suivie lentement
+			local poids = math.Clamp((long - 0.02) / 0.08, 0, 1)
+			lisse = lisse + math.NormalizeAngle(lacet - lisse) * poids
+		end
+		w.OrigineLacets[cle] = lisse
+	end
+	if not lisse then return nil end
+	return Angle(0, corps + lisse, 0):Right()
 end
 
--- Repère de la lame : avant = dir, droite = droite du corps (rendue perpendiculaire à dir)
+-- Repère de la lame : avant = dir, droite = droite donnée (rendue perpendiculaire à dir)
 function A.RepereLame(dir, droite)
 	if droite then
 		local r = droite - dir * droite:Dot(dir)
@@ -197,7 +217,7 @@ function A.PreparerModele(SWEP)
 		local pos, dir = f(self, num, side, model, ...)
 		if pos and dir and not side and (model == nil or model == self) and not A.ModeleWOS(self) then
 			pos, dir = A.LigneEpee(self, pos, dir)
-			dir = A.Incliner(dir, self.OrigineEnMain, A.DroiteCorps(self:GetOwner()))
+			dir = A.Incliner(dir, self.OrigineEnMain, A.DroiteLissee(self, dir, "incliner"))
 		end
 		return pos, dir
 	end
@@ -250,11 +270,11 @@ function A.PlacerEnMain(w)
 		-- Épée rangée : au fourreau, à la ceinture
 		local depart, dir = A.PositionCeinture(w:GetOwner(), 0)
 		if not depart then return false end
-		pos, ang = A.AlignerSurLame(w, depart, dir, { Garde = cfg.Garde, Avance = 0, Roulis = A.Ceinture.Roulis, Echelle = cfg.Echelle }, A.DroiteCorps(w:GetOwner()))
+		pos, ang = A.AlignerSurLame(w, depart, dir, { Garde = cfg.Garde, Avance = 0, Roulis = A.Ceinture.Roulis, Echelle = cfg.Echelle })
 	else
 		local ok, depart, dir = pcall(w.GetSaberPosAng, w)
 		if not (ok and depart and dir) then return false end
-		pos, ang = A.AlignerSurLame(w, depart, dir, cfg, A.DroiteCorps(w:GetOwner()))
+		pos, ang = A.AlignerSurLame(w, depart, dir, cfg, A.DroiteLissee(w, dir, "main"))
 	end
 	if not pos then return false end
 	w:SetRenderOrigin(pos)
@@ -320,7 +340,7 @@ hook.Add("PostPlayerDraw", "origine_epee_ceinture", function(ply)
 				local depart, dir = A.PositionCeinture(ply, n)
 				local cfg = w.OrigineEnMain or A.EnMainDefaut
 				local pos, ang
-				if depart then pos, ang = A.AlignerSurLame(m, depart, dir, { Garde = cfg.Garde, Avance = 0, Roulis = C.Roulis, Echelle = cfg.Echelle }, A.DroiteCorps(ply)) end
+				if depart then pos, ang = A.AlignerSurLame(m, depart, dir, { Garde = cfg.Garde, Avance = 0, Roulis = C.Roulis, Echelle = cfg.Echelle }) end
 				if pos then
 					m:SetPos(pos)
 					m:SetAngles(ang)
