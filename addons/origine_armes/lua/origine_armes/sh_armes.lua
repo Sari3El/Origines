@@ -95,18 +95,14 @@ function A.Preparer(SWEP)
 	end
 end
 
--- Lame du Mage : tous les pouvoirs et tous les ultimes installés sur le serveur
+-- Lame du Mage : tous les pouvoirs et tous les ultimes installés sur le serveur.
+-- SWEP:Initialize n'est PAS remplacé : c'est celui de wOS qui prépare la jauge de Force et les
+-- pouvoirs de l'arme (le remplacer privait la Lame du Mage de Force et de choix de pouvoir).
+-- Les listes de la classe sont remises à jour quand wOS a fini de charger (majMage).
 function A.PreparerMage(SWEP)
 	A.Preparer(SWEP)
 	SWEP.ForcePowerList = A.TousLesPouvoirs()
 	SWEP.DevestatorList = A.TousLesUltimes()
-	local base = baseclass.Get(SWEP.Base)
-	function SWEP:Initialize()
-		-- Listes relues au moment où l'arme est créée (pouvoirs ajoutés plus tard compris)
-		self.ForcePowerList = A.TousLesPouvoirs()
-		self.DevestatorList = A.TousLesUltimes()
-		if base and base.Initialize then return base.Initialize(self) end
-	end
 end
 
 -- Quand wOS a fini de charger ses pouvoirs, la classe de la Lame du Mage est mise à jour

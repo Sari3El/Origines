@@ -117,14 +117,13 @@ end
 wOS.AvailableDevestators = { ["Kyber Slam"] = {}, ["Lightning Coil"] = {}, ["Sonic Discharge"] = {} }
 HOOKS["wOS.ALCS.PostLoaded/origine_armes"]()
 INSTANCE = setmetatable({}, { __index = STOCKEES["weapon_origine_mage"] })
-INSTANCE:Initialize()
 """)
 inst = G.INSTANCE
 p = liste(inst.ForcePowerList)
 verifier("mage sans packs : 20 pouvoirs de base + pouvoir ajouté", len(p) == 21 and p[-1] == "Pouvoir Maison", p)
 verifier("mage sans packs : aucun pouvoir de pack", "Burn Out" not in p and "Force Choke" not in p)
 verifier("mage : ordre wOS respecté (Force Leap en premier)", p[0] == "Force Leap")
-verifier("mage : Initialize de la base wOS appelé", inst.InitBase is True)
+verifier("mage : Initialize de wOS non remplacé (jauge de Force, pouvoirs)", all(a.Initialize is None for a in armes.values()))
 verifier("mage : classe mise à jour après le chargement de wOS", len(liste(G.STOCKEES["weapon_origine_mage"].ForcePowerList)) == 21)
 verifier("lame « Invisible » enregistrée dans wOS", G.LAMES["Invisible"] is not None and G.LAMES["Invisible"].EnvelopeMaterial == ""
          and G.LAMES["Invisible"].DrawTrail is False and G.LAMES["Invisible"].UseParticle is False)

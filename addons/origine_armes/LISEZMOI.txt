@@ -91,8 +91,13 @@ Les ultimes demandent Meditate ou Channel Hatred (présents dans sa liste), 100 
 allumée. Il n'existe pas encore de job « Mage » : l'arme n'est donnée par aucun job pour l'instant
 (ajoutez "weapon_origine_mage" aux armes du job quand il existera, dans jobs.lua).
 
-Avec le menu de Force HYBRID de wOS, wOS limite les emplacements à wOS.ALCS.Config.MaximumForceSlots :
-le Mage place ses pouvoirs dans ses emplacements avec Alt + F.
+Avec le menu de Force HYBRID de wOS, wOS limite les emplacements à wOS.ALCS.Config.MaximumForceSlots
+(6) : au départ, les 6 premiers pouvoirs de la liste.
+Changer de pouvoir : F ouvre / ferme le choix des pouvoirs, puis les touches 1 à 6 choisissent
+l'emplacement (le sélecteur d'armes Origine laisse alors ces touches à wOS).
+Changer les pouvoirs des emplacements : Alt + F (glisser un pouvoir sur un emplacement, clic droit
+pour vider, croix rouge pour valider).
+Le SWEP:Initialize de wOS n'est pas remplacé (c'est lui qui prépare la jauge de Force et les pouvoirs).
 
 
 5. Tests à faire en jeu

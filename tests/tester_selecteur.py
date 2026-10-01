@@ -186,6 +186,20 @@ FERME_CLIC_DROIT = not SEL.Ouvert and EQUIPEE == nil
 verifier("clic gauche : équipe l'arme", lua.eval("EQUIPE_CLIC == CAPA"))
 verifier("clic droit : ferme sans équiper", G.FERME_CLIC_DROIT is True)
 
+# Lame wOS avec le choix des pouvoirs ouvert (F) : les touches 1 à 6 vont à wOS
+lua.execute(r"""
+SEL.Fermer()
+MAINS.IsLightsaber, MAINS.ForceSelectEnabled = true, true
+R_POUVOIR = BIND(JOUEUR, "slot2", true)
+OUVERT_POUVOIR = SEL.Ouvert
+MAINS.ForceSelectEnabled = false
+R_ARME = BIND(JOUEUR, "slot2", true)
+MAINS.IsLightsaber, MAINS.ForceSelectEnabled = nil, nil
+SEL.Fermer()
+""")
+verifier("choix des pouvoirs wOS : touche laissée à wOS", G.R_POUVOIR is None and not G.OUVERT_POUVOIR)
+verifier("choix des pouvoirs fermé : sélecteur normal", G.R_ARME is True)
+
 # hud_fastswitch 1
 lua.execute(r"""
 FASTSWITCH = true

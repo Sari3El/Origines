@@ -326,6 +326,13 @@ hook.Add("PlayerBindPress", "origine_selecteur", function(ply, bind, presse)
 	local slot = tonumber(string.match(bind, "^slot(%d)$"))
 	if not molette and not (slot and slot >= 1 and slot <= CS.Colonnes) then return end
 
+	-- Armes wOS (Lames Origine) : touche F = choix des pouvoirs ; les touches 1 à 6 choisissent
+	-- alors un pouvoir dans wOS, pas une arme
+	if slot then
+		local actif = ply:GetActiveWeapon()
+		if IsValid(actif) and actif.IsLightsaber and actif.ForceSelectEnabled then return end
+	end
+
 	-- Physgun : la molette sert à rapprocher/éloigner l'objet tenu
 	if molette then
 		local actif = ply:GetActiveWeapon()
