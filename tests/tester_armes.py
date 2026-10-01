@@ -111,7 +111,7 @@ for cle, s in armes.items():
 
 for cle, s in armes.items():
     verifier(f"{cle} : modèle d'épée templarsword", s.UseHilt == s.WorldModel == "models/peanut/templarsword.mdl")
-    verifier(f"{cle} : placement en main réglable", s.OrigineEnMain is not None and s.OrigineEnMain.Garde == 0.2 and s.OrigineEnMain.Avance == 0 and s.OrigineEnMain.DeuxMains is True)
+    verifier(f"{cle} : placement en main réglable", s.OrigineEnMain is not None and s.OrigineEnMain.Garde == 0.2 and s.OrigineEnMain.Avance == -5 and s.OrigineEnMain.DeuxMains is False and s.OrigineEnMain.Tangage == 10)
     verifier(f"{cle} : dessin wOS non remplacé", s.DrawWorldModelTranslucent is None)
 lua.execute(r"""
 local inst = setmetatable({ OrigineEnMain = { Tangage = 0, Lacet = 0 }, GetOwner = function() return nil end, GetModel = function() return "m" end,
@@ -127,7 +127,7 @@ local function mat(p) return { GetTranslation = function() return p end,
 local os = { ["ValveBiped.Bip01_R_Hand"] = 1, ["ValveBiped.Bip01_L_Hand"] = 2 }
 MAINS = { [1] = Vector(0, 0, 40), [2] = Vector(0, 0, 34) }
 local own = { LookupBone = function(_, n) return os[n] end, GetBoneMatrix = function(_, i) return mat(MAINS[i]) end }
-local w = { GetOwner = function() return own end, OrigineEnMain = { Paume = 0, Prise = 2, EcartMains = 14 } }
+local w = { GetOwner = function() return own end, OrigineEnMain = { DeuxMains = true, Paume = 0, Prise = 2, EcartMains = 14 } }
 local p, d = ORIGINE.Armes.LigneEpee(w, Vector(9, 9, 9), Vector(0.2, 0, 0.98))
 L2 = { p.x, p.y, p.z, d.x, d.y, d.z }
 p, d = ORIGINE.Armes.LigneEpee(w, Vector(9, 9, 9), Vector(0, 0, -1))
@@ -138,6 +138,12 @@ L1 = { p.x, p.y, p.z, d.x }
 """)
 verifier("deux mains : poignée dans les deux paumes, garde au-dessus de la main du haut", liste(G.L2) == [0, 0, 42, 0, 0, 1], liste(G.L2))
 verifier("deux mains : pointe du côté de la ligne wOS", liste(G.L2B) == [32, -1], liste(G.L2B))
+lua.execute(r"""
+w0 = { GetOwner = function() return {} end, OrigineEnMain = { DeuxMains = false } }
+local p, d = ORIGINE.Armes.LigneEpee(w0, "P", "D")
+SANS = { p, d }
+""")
+verifier("DeuxMains = false : ligne de wOS telle quelle", liste(G.SANS) == ["P", "D"])
 verifier("une main : depuis la paume droite, direction wOS", liste(G.L1) == [2, 0, 40, 1], liste(G.L1))
 verifier("modèle préchargé", G.PRECACHE["models/peanut/templarsword.mdl"] is True)
 

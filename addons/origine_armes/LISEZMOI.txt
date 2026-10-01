@@ -84,14 +84,12 @@ origine_armes (sh_modele.lua) place l'épée SUR CETTE LIGNE : la lame du modèl
 long, pointe = le bout le plus éloigné de l'origine du modèle) suit la ligne des touches, la garde
 est mise à son départ. L'épée visible et la zone de touche coïncident, dans toutes les postures.
 
-Tenue à deux mains (postures wOS) : la poignée passe par le creux des deux mains et la lame part
-de la main du haut, dans l'axe qui relie les deux mains. Quand les mains s'écartent (plus de
-EcartMains unités), l'épée est tenue par la main droite seule, dans la direction de wOS.
-La zone de touche suit cette même ligne.
+Option DeuxMains = true (désactivée : moins bien rendue en jeu) : la poignée passe par le creux des
+deux mains, la lame part de la main du haut, dans l'axe des deux mains.
 
-Réglages : SWEP.OrigineEnMain = { Garde = 0.2, Avance = 0, Roulis = 0, Echelle = 1, Tangage = 0,
-           Lacet = 0, DeuxMains = true, EcartMains = 14, Paume = 3.5, Prise = 2 }
-- DeuxMains : false = toujours à une main (direction de wOS).
+Réglages : SWEP.OrigineEnMain = { Garde = 0.2, Avance = -5, Roulis = 0, Echelle = 1, Tangage = 10,
+           Lacet = 0, DeuxMains = false }
+- DeuxMains : true = poignée dans les deux mains (voir ci-dessus).
 - EcartMains : écart maximal entre les deux paumes pour la tenue à deux mains.
 - Paume   : distance du poignet au creux de la main.
 - Prise   : distance de la main du haut à la garde.

@@ -32,7 +32,7 @@ A.EnMainDefaut = {
 	Echelle = 1,
 	Tangage = 0,    -- inclinaison de la lame vers l'avant / l'arrière (degrés) : touches comprises
 	Lacet = 0,      -- inclinaison de la lame vers la gauche / la droite (degrés) : touches comprises
-	DeuxMains = true, -- tenue à deux mains : la poignée passe par les deux paumes
+	DeuxMains = false, -- true = la poignée passe par les deux paumes (essai, moins bien rendu)
 	EcartMains = 14,  -- au-delà (unités entre les paumes), une seule main tient l'épée
 	Paume = 3.5,      -- distance du poignet au creux de la main, le long de la main (unités)
 	Prise = 2,        -- de la main du haut à la garde (unités)
@@ -56,10 +56,11 @@ function A.LigneEpee(w, posWOS, dirWOS)
 	local own = w:GetOwner()
 	if not (IsValid(own) and dirWOS) then return posWOS, dirWOS end
 	local cfg = w.OrigineEnMain or A.EnMainDefaut
+	if cfg.DeuxMains ~= true then return posWOS, dirWOS end -- ligne de wOS telle quelle
 	local prise = tonumber(cfg.Prise) or 2
 	local droite = paume(own, "ValveBiped.Bip01_R_Hand", cfg)
 	if not droite then return posWOS, dirWOS end
-	if cfg.DeuxMains ~= false then
+	if cfg.DeuxMains == true then
 		local gauche = paume(own, "ValveBiped.Bip01_L_Hand", cfg)
 		if gauche then
 			local d = droite - gauche
