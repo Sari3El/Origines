@@ -120,12 +120,33 @@ end
 
 -- Place un modèle pour que sa lame suive la direction dir et que sa garde soit en depart.
 -- Renvoie position et angle du modèle.
-function A.AlignerSurLame(ent, depart, dir, cfg)
+-- Droite du corps du joueur (horizontale) : repère stable pour orienter la lame.
+-- (dir:Angle() se base sur la verticale du monde : instable quand la lame est presque verticale,
+-- l'épée basculait alors de gauche à droite.)
+function A.DroiteCorps(ply)
+	if not IsValid(ply) then return nil end
+	local a = (CLIENT and ply.GetRenderAngles) and ply:GetRenderAngles() or ply:EyeAngles()
+	return Angle(0, a.y, 0):Right()
+end
+
+-- Repère de la lame : avant = dir, droite = droite du corps (rendue perpendiculaire à dir)
+function A.RepereLame(dir, droite)
+	if droite then
+		local r = droite - dir * droite:Dot(dir)
+		if r:LengthSqr() > 0.01 then
+			r:Normalize()
+			return dir:AngleEx(r:Cross(dir))
+		end
+	end
+	return dir:Angle()
+end
+
+function A.AlignerSurLame(ent, depart, dir, cfg, droite)
 	local info = axeDe(ent)
 	if not info then return nil end
 	cfg = cfg or A.EnMainDefaut
 	local echelle = tonumber(cfg.Echelle) or 1
-	local repere = dir:Angle()
+	local repere = A.RepereLame(dir, droite)
 	repere:RotateAroundAxis(dir, tonumber(cfg.Roulis) or 0)
 	local _, angModele = LocalToWorld(vector_origin, ANGLES_AXE[info.axe][info.signe], vector_origin, repere)
 	-- Point de la garde dans le modèle, ramené au départ de la lame
@@ -151,11 +172,11 @@ end
 -- Appelé par A.Preparer pour chaque arme
 ---------------------------------------------------------------------------
 -- Incline une direction de lame (Tangage, Lacet en degrés)
-function A.Incliner(dir, cfg)
+function A.Incliner(dir, cfg, droite)
 	local t = cfg and tonumber(cfg.Tangage) or 0
 	local l = cfg and tonumber(cfg.Lacet) or 0
 	if t == 0 and l == 0 then return dir end
-	local a = dir:Angle()
+	local a = A.RepereLame(dir, droite)
 	if t ~= 0 then a:RotateAroundAxis(a:Right(), t) end
 	if l ~= 0 then a:RotateAroundAxis(a:Up(), l) end
 	return a:Forward()
@@ -176,7 +197,7 @@ function A.PreparerModele(SWEP)
 		local pos, dir = f(self, num, side, model, ...)
 		if pos and dir and not side and (model == nil or model == self) and not A.ModeleWOS(self) then
 			pos, dir = A.LigneEpee(self, pos, dir)
-			dir = A.Incliner(dir, self.OrigineEnMain)
+			dir = A.Incliner(dir, self.OrigineEnMain, A.DroiteCorps(self:GetOwner()))
 		end
 		return pos, dir
 	end
@@ -229,11 +250,11 @@ function A.PlacerEnMain(w)
 		-- Épée rangée : au fourreau, à la ceinture
 		local depart, dir = A.PositionCeinture(w:GetOwner(), 0)
 		if not depart then return false end
-		pos, ang = A.AlignerSurLame(w, depart, dir, { Garde = cfg.Garde, Avance = 0, Roulis = A.Ceinture.Roulis, Echelle = cfg.Echelle })
+		pos, ang = A.AlignerSurLame(w, depart, dir, { Garde = cfg.Garde, Avance = 0, Roulis = A.Ceinture.Roulis, Echelle = cfg.Echelle }, A.DroiteCorps(w:GetOwner()))
 	else
 		local ok, depart, dir = pcall(w.GetSaberPosAng, w)
 		if not (ok and depart and dir) then return false end
-		pos, ang = A.AlignerSurLame(w, depart, dir, cfg)
+		pos, ang = A.AlignerSurLame(w, depart, dir, cfg, A.DroiteCorps(w:GetOwner()))
 	end
 	if not pos then return false end
 	w:SetRenderOrigin(pos)
@@ -299,7 +320,7 @@ hook.Add("PostPlayerDraw", "origine_epee_ceinture", function(ply)
 				local depart, dir = A.PositionCeinture(ply, n)
 				local cfg = w.OrigineEnMain or A.EnMainDefaut
 				local pos, ang
-				if depart then pos, ang = A.AlignerSurLame(m, depart, dir, { Garde = cfg.Garde, Avance = 0, Roulis = C.Roulis, Echelle = cfg.Echelle }) end
+				if depart then pos, ang = A.AlignerSurLame(m, depart, dir, { Garde = cfg.Garde, Avance = 0, Roulis = C.Roulis, Echelle = cfg.Echelle }, A.DroiteCorps(ply)) end
 				if pos then
 					m:SetPos(pos)
 					m:SetAngles(ang)
