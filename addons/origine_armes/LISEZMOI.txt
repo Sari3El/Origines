@@ -88,12 +88,17 @@ Réglages : SWEP.OrigineEnMain = { Garde = 0.2, Avance = 0, Roulis = 0, Echelle 
 - Avance  : décalage de toute l'épée le long de la lame (unités ; négatif = recule).
 - Roulis  : rotation autour de la lame (degrés), pour mettre le tranchant dans le bon sens.
 - Echelle : taille du modèle.
+- Tangage / Lacet : inclinaison de la lame vers l'avant/l'arrière et la gauche/la droite (degrés).
+            La zone de touche est inclinée avec l'épée : elle reste dans la lame visible.
 Réglage en jeu (console, arme en main, vue à la troisième personne) :
   origine_epee_debug 1                 ligne rouge = zone de touche (longueur SWEP.UseLength)
   origine_epee_placer garde avance roulis [échelle]
       ex. : origine_epee_placer 0.25 0 90
+  origine_epee_incliner tangage lacet
+      ex. : origine_epee_incliner 15 0   (essayer -15 si l'épée part du mauvais côté)
       aperçu sur votre écran seulement ; affiche la ligne SWEP.OrigineEnMain à recopier dans les
       4 fichiers d'arme, et la longueur de lame à mettre dans SWEP.UseLength.
+      Les touches du serveur ne changent qu'une fois la ligne recopiée dans les fichiers.
 Si la pointe est du mauvais côté (l'épée tenue par la lame) : le modèle a son origine vers la pointe ;
 mettre Garde = 0.8 (au lieu de 0.2) et vérifier avec origine_epee_debug.
 

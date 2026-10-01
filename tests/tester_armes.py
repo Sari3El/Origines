@@ -27,7 +27,8 @@ RENDERGROUP_BOTH = 1
 AddCSLuaFile = function() end
 HOOKS = {}
 hook = { Add = function(ev, id, fn) HOOKS[ev .. "/" .. id] = fn end }
-BASES = { wos_adv_single_lightsaber_base = { Initialize = function(self) self.InitBase = true end } }
+BASES = { wos_adv_single_lightsaber_base = { Initialize = function(self) self.InitBase = true end,
+	GetSaberPosAng = function(self) return "POS", "DIR" end } }
 baseclass = { Get = function(n) BASES[n] = BASES[n] or {} return BASES[n] end }
 STOCKEES = {}
 weapons = { GetStored = function(c) return STOCKEES[c] end }
@@ -103,7 +104,14 @@ for cle, s in armes.items():
 for cle, s in armes.items():
     verifier(f"{cle} : modèle d'épée templarsword", s.UseHilt == s.WorldModel == "models/peanut/templarsword.mdl")
     verifier(f"{cle} : placement en main réglable", s.OrigineEnMain is not None and s.OrigineEnMain.Garde == 0.2 and s.OrigineEnMain.Avance == -5)
-    verifier(f"{cle} : dessin wOS non remplacé", s.DrawWorldModelTranslucent is None and s.GetSaberPosAng is None)
+    verifier(f"{cle} : dessin wOS non remplacé", s.DrawWorldModelTranslucent is None)
+lua.execute(r"""
+local inst = setmetatable({ OrigineEnMain = { Tangage = 0, Lacet = 0 }, GetModel = function() return "m" end,
+	LookupAttachment = function() return 0 end, LookupBone = function() return nil end },
+	{ __index = STOCKEES["weapon_origine_empire"] })
+SPA_POS, SPA_DIR = inst:GetSaberPosAng()
+""")
+verifier("ligne des touches : celle de wOS sans inclinaison", G.SPA_POS == "POS" and G.SPA_DIR == "DIR")
 verifier("modèle préchargé", G.PRECACHE["models/peanut/templarsword.mdl"] is True)
 
 for cle in ("nuit", "empire", "consortium"):

@@ -30,6 +30,8 @@ A.EnMainDefaut = {
 	Avance = 0,     -- décalage le long de la lame (unités ; négatif = l'épée recule dans la main)
 	Roulis = 0,     -- rotation autour de la lame (degrés : tranchant vers l'avant, à plat...)
 	Echelle = 1,
+	Tangage = 0,    -- inclinaison de la lame vers l'avant / l'arrière (degrés) : touches comprises
+	Lacet = 0,      -- inclinaison de la lame vers la gauche / la droite (degrés) : touches comprises
 }
 -- Épée à la ceinture : à gauche de la taille, pointe vers le bas et l'arrière
 A.Ceinture = {
@@ -106,10 +108,34 @@ end
 ---------------------------------------------------------------------------
 -- Appelé par A.Preparer pour chaque arme
 ---------------------------------------------------------------------------
+-- Incline une direction de lame (Tangage, Lacet en degrés)
+function A.Incliner(dir, cfg)
+	local t = cfg and tonumber(cfg.Tangage) or 0
+	local l = cfg and tonumber(cfg.Lacet) or 0
+	if t == 0 and l == 0 then return dir end
+	local a = dir:Angle()
+	if t ~= 0 then a:RotateAroundAxis(a:Right(), t) end
+	if l ~= 0 then a:RotateAroundAxis(a:Up(), l) end
+	return a:Forward()
+end
+
 function A.PreparerModele(SWEP)
 	if isstring(SWEP.UseHilt) and SWEP.UseHilt ~= "" then
 		SWEP.WorldModel = SWEP.UseHilt
 		if util and util.PrecacheModel then util.PrecacheModel(SWEP.UseHilt) end
+	end
+
+	-- Ligne des touches de wOS, inclinée comme l'épée visible (Tangage / Lacet de OrigineEnMain).
+	-- Sans inclinaison, c'est exactement la ligne de wOS.
+	function SWEP:GetSaberPosAng(num, side, model, ...)
+		local b = baseclass.Get(self.Base)
+		local f = (b and b.GetSaberPosAng) or (self.BaseClass and self.BaseClass.GetSaberPosAng)
+		if not f then return end
+		local pos, dir = f(self, num, side, model, ...)
+		if pos and dir and not side and (model == nil or model == self) and not A.ModeleWOS(self) then
+			dir = A.Incliner(dir, self.OrigineEnMain)
+		end
+		return pos, dir
 	end
 end
 
@@ -278,13 +304,55 @@ hook.Add("wOS.ALCS.OnLoaded", "origine_epee_ceinture", A.RemplacerCeintureWOS)
 local debug = CreateClientConVar("origine_epee_debug", "0", false, false,
 	"1 = dessine la zone de touche des armes Origine (réglage du modèle d'épée)")
 
--- origine_epee_placer garde avance roulis [échelle] : règle l'épée en main (aperçu local)
-concommand.Add("origine_epee_placer", function(ply, _, args)
+local function afficher(w, cfg)
+	if A.ModeleWOS(w) then
+		print("[Origine] Ce modèle est préparé pour wOS (blade1 ou os de main) : wOS le place lui-même.")
+	end
+	print("[Origine] À mettre dans les fichiers d'arme (lua/weapons/weapon_origine_*.lua) :")
+	print(string.format("SWEP.OrigineEnMain = { Garde = %s, Avance = %s, Roulis = %s, Echelle = %s, Tangage = %s, Lacet = %s }",
+		tostring(cfg.Garde), tostring(cfg.Avance), tostring(cfg.Roulis), tostring(cfg.Echelle),
+		tostring(cfg.Tangage or 0), tostring(cfg.Lacet or 0)))
+	local info = axeDe(w)
+	if info then
+		local lame = math.Round((1 - (tonumber(cfg.Garde) or 0.2)) * info.longueur * (tonumber(cfg.Echelle) or 1) + (tonumber(cfg.Avance) or 0))
+		print(string.format("[Origine] Longueur du modèle : %d unités. Lame visible ≈ %d : SWEP.UseLength = %d",
+			math.Round(info.longueur), lame, lame))
+	end
+	print("[Origine] Aperçu sur votre écran seulement : les touches du serveur changent une fois la ligne recopiée.")
+end
+
+local function armeEnMain(ply)
 	local w = IsValid(ply) and ply:GetActiveWeapon()
 	if not (IsValid(w) and A.EstArme and A.EstArme(w)) then
 		print("[Origine] Prenez une arme Origine en main.")
-		return
+		return nil
 	end
+	return w
+end
+
+local function appliquer(w, cfg)
+	w.OrigineEnMain = cfg
+	local stockee = weapons.GetStored(w:GetClass())
+	if stockee then stockee.OrigineEnMain = cfg end
+end
+
+-- origine_epee_incliner tangage lacet : incline l'épée (et la zone de touche) dans la main
+concommand.Add("origine_epee_incliner", function(ply, _, args)
+	local w = armeEnMain(ply)
+	if not w then return end
+	local cfg = table.Copy(w.OrigineEnMain or A.EnMainDefaut)
+	if #args >= 1 then
+		cfg.Tangage = tonumber(args[1]) or cfg.Tangage or 0
+		cfg.Lacet = tonumber(args[2]) or cfg.Lacet or 0
+		appliquer(w, cfg)
+	end
+	afficher(w, cfg)
+end, nil, "Incline l'épée Origine en main : tangage (avant/arrière) lacet (gauche/droite), en degrés")
+
+-- origine_epee_placer garde avance roulis [échelle] : règle l'épée en main (aperçu local)
+concommand.Add("origine_epee_placer", function(ply, _, args)
+	local w = armeEnMain(ply)
+	if not w then return end
 	local cfg = table.Copy(w.OrigineEnMain or A.EnMainDefaut)
 	if #args >= 1 then
 		local n = {}
@@ -293,22 +361,9 @@ concommand.Add("origine_epee_placer", function(ply, _, args)
 		cfg.Avance = n[2] or cfg.Avance
 		cfg.Roulis = n[3] or cfg.Roulis
 		cfg.Echelle = n[4] or cfg.Echelle
-		w.OrigineEnMain = cfg
-		local stockee = weapons.GetStored(w:GetClass())
-		if stockee then stockee.OrigineEnMain = cfg end
+		appliquer(w, cfg)
 	end
-	if A.ModeleWOS(w) then
-		print("[Origine] Ce modèle est préparé pour wOS (blade1 ou os de main) : wOS le place lui-même.")
-	end
-	print("[Origine] À mettre dans les fichiers d'arme (lua/weapons/weapon_origine_*.lua) :")
-	print(string.format("SWEP.OrigineEnMain = { Garde = %s, Avance = %s, Roulis = %s, Echelle = %s }",
-		tostring(cfg.Garde), tostring(cfg.Avance), tostring(cfg.Roulis), tostring(cfg.Echelle)))
-	local info = axeDe(w)
-	if info then
-		local lame = math.Round((1 - (tonumber(cfg.Garde) or 0.2)) * info.longueur * (tonumber(cfg.Echelle) or 1) + (tonumber(cfg.Avance) or 0))
-		print(string.format("[Origine] Longueur du modèle : %d unités. Lame visible ≈ %d : SWEP.UseLength = %d",
-			math.Round(info.longueur), lame, lame))
-	end
+	afficher(w, cfg)
 end, nil, "Règle l'épée Origine en main : garde (0-1) avance roulis [échelle]")
 
 -- Zone de touche : ligne rouge de la longueur SWEP.UseLength, depuis le départ de la lame
