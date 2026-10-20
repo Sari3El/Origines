@@ -1,0 +1,160 @@
+ORIGINE DU MONDE — ARMES wOS DE BASE (origine_armes)
+=====================================================
+
+Contenu
+-------
+lua/weapons/weapon_origine_nuit.lua        Lame de la Nuit       (Créatures de la nuit)  Saut de Force uniquement
+lua/weapons/weapon_origine_empire.lua      Lame de l'Empire      (Empire)                Saut de Force uniquement
+lua/weapons/weapon_origine_consortium.lua  Lame du Consortium    (Consortium)            Saut de Force uniquement
+lua/weapons/weapon_origine_mage.lua        Lame du Mage          (Mage)                  Tous les pouvoirs et tous les ultimes
+lua/origine_armes/sh_armes.lua             Commun aux 4 armes (lame invisible, listes du Mage, cooldowns, races)
+lua/origine_armes/sh_epee.lua              Comportement d'épée : sons, traces au mur, dégâts au contact (partie 2)
+lua/origine_armes/sh_modele.lua            Modèle d'épée : placement dans la main, réglage en jeu (partie 3)
+materials/origine_armes/lame_invisible.*   Matériau entièrement transparent de la lame
+
+Catégories du menu des armes : « Origine Créatures de la nuit Weapon », « Origine Empire Weapon »,
+« Origine Consortium Weapon », « Origine Mage Weapon » (réservées aux admins dans le menu Q).
+Les noms d'affichage sont provisoires : SWEP.PrintName dans chaque fichier d'arme.
+
+À mettre dans la collection Workshop du serveur : le dossier materials/origine_armes.
+
+
+1. Le type de lame « Invisible » (seule modification liée à ALCS)
+----------------------------------------------------------------
+Le type de lame est enregistré AUTOMATIQUEMENT par origine_armes (sh_armes.lua) dès que wOS est
+chargé : il n'y a normalement rien à modifier dans les fichiers d'ALCS, et une mise à jour de wOS
+ne l'efface pas.
+
+Si vous préférez l'avoir dans le fichier de wOS (ou si la lame réapparaît après une mise à jour de wOS),
+ajoutez ce bloc tout en bas de lua/wos/advswl/lightsaber/blades/default_blades.lua :
+
+wOS.ALCS.LightsaberBase:AddBlade({
+	Name = "Invisible",
+	InnerMaterial = "origine_armes/lame_invisible",
+	EnvelopeMaterial = "",
+	UseParticle = false,
+	DrawTrail = false,
+	QuillonParticle = false,
+	QuillonInnerMaterial = "",
+	QuillonEnvelopeMaterial = "",
+})
+
+Pourquoi c'est invisible : wOS ne dessine pas un matériau vide ("") ; le matériau intérieur est
+entièrement transparent ; pas de particule ni de traînée ; la couleur de la lame est noire
+(SWEP.UseColor = Color( 0, 0, 0 )), donc la lumière dynamique de la lame n'éclaire rien.
+Si une lueur restait visible en jeu : dans le fichier de l'arme, ajouter SWEP.NoBlade = true
+(wOS ne dessine alors plus du tout la lame ; à tester, car la base wOS est chiffrée côté serveur).
+
+
+2. Comportement d'épée (sh_epee.lua)
+------------------------------------
+Sans modifier les fichiers chiffrés de wOS :
+- Sons : aucun son de sabre laser. Les sons des armes sont vides (common/null.wav) et tous les sons
+  wOS dont le chemin commence par lightsaber/saber, lightsaber/darksaber, lightsaber/clash ou
+  lightsaber/block sont coupés quand ils viennent d'une arme Origine (impact sur un mur ou un
+  joueur, choc entre deux lames, renvoi). Liste : ORIGINE.Armes.Epee.SonsCoupes.
+  Les sons des pouvoirs (saut de Force, éclairs du Mage...) sont gardés.
+- Murs : plus de marque de brûlure ni d'étincelles quand la lame touche un mur
+  (ORIGINE.Armes.Epee.DecalsCoupes / EffetsCoupes). Le sang sur les joueurs est gardé.
+- Dégâts : la lame ne fait des dégâts que pendant un vrai coup (clic gauche ou droit tenu, ou
+  appuyé il y a moins de 0,9 s : ORIGINE.Armes.Epee.DureeCoup, ou attaque spéciale de wOS en cours).
+  Quelqu'un qui marche dans la lame immobile, ou que la lame traverse quand on se tourne, ne prend rien.
+  Les dégâts des pouvoirs du Mage restent normaux.
+- Déplacement : on peut bouger en frappant (SWEP.CanMoveWhileAttacking = true), y compris pendant
+  les coups lourds et les ultimes (le blocage des touches de wOS est retiré pour les armes Origine).
+- Trace des coups : origine_armes règle wOS.ALCS.Config.LightsaberTrace sur
+  WOS_ALCS.TRACE.MINIMALINTERP au chargement (la trace suit le trajet de la lame, mais seulement
+  pendant les coups). Pour être sûr qu'il soit pris en compte, mettez aussi cette valeur dans
+  lua/wos/advswl/config/lightsaber/sv_config.lua :
+      wOS.ALCS.Config.LightsaberTrace = WOS_ALCS.TRACE.MINIMALINTERP
+  À ne pas mettre sur MINIMAL (moins précis avec une lame invisible).
+Les sons, effets et marques sont filtrés autour d'un porteur d'arme Origine (110 unités :
+ORIGINE.Armes.Epee.Portee). origine_armes doit être chargé avant wOS (c'est le cas : les fichiers
+autorun sont chargés par ordre alphabétique, « origine_9d_armes » avant « wos_... »).
+
+
+3. Modèle d'épée : models/peanut/templarsword.mdl
+--------------------------------------------------
+Les 4 armes utilisent ce modèle (SWEP.UseHilt et SWEP.WorldModel dans chaque fichier d'arme).
+Il doit être dans la collection Workshop du serveur (fait).
+
+Ce modèle n'est pas préparé pour wOS (pas de point « blade1 », pas d'os de main). wOS fait donc
+partir la lame invisible (les touches) de la main, dans l'axe d'un manche de sabre tenu.
+origine_armes (sh_modele.lua) place l'épée SUR CETTE LIGNE : la lame du modèle (son côté le plus
+long, pointe = le bout le plus éloigné de l'origine du modèle) suit la ligne des touches, la garde
+est mise à son départ. L'épée visible et la zone de touche coïncident, dans toutes les postures.
+
+Option DeuxMains = true (désactivée : moins bien rendue en jeu) : la poignée passe par le creux des
+deux mains, la lame part de la main du haut, dans l'axe des deux mains.
+
+Réglages : SWEP.OrigineEnMain = { Garde = 0.2, Avance = -5, Roulis = 0, Echelle = 1, Tangage = 10,
+           Lacet = 0, DeuxMains = false }
+- DeuxMains : true = poignée dans les deux mains (voir ci-dessus).
+- EcartMains : écart maximal entre les deux paumes pour la tenue à deux mains.
+- Paume   : distance du poignet au creux de la main.
+- Prise   : distance de la main du haut à la garde.
+- Garde   : place de la garde sur la longueur du modèle (0 = pommeau, 1 = pointe). Plus grand =
+            le manche recule dans la main.
+- Avance  : décalage de toute l'épée le long de la lame (unités ; négatif = recule).
+- Roulis  : rotation autour de la lame (degrés), pour mettre le tranchant dans le bon sens.
+- Echelle : taille du modèle.
+- Tangage / Lacet : inclinaison de la lame vers l'avant/l'arrière et la gauche/la droite (degrés).
+            La zone de touche est inclinée avec l'épée : elle reste dans la lame visible.
+Réglage en jeu (console, arme en main, vue à la troisième personne) :
+  origine_epee_debug 1                 ligne rouge = zone de touche (longueur SWEP.UseLength)
+  origine_epee_placer garde avance roulis [échelle]
+      ex. : origine_epee_placer 0.25 0 90
+  origine_epee_incliner tangage lacet
+      ex. : origine_epee_incliner 15 0   (essayer -15 si l'épée part du mauvais côté)
+      aperçu sur votre écran seulement ; affiche la ligne SWEP.OrigineEnMain à recopier dans les
+      4 fichiers d'arme, et la longueur de lame à mettre dans SWEP.UseLength.
+      Les touches du serveur ne changent qu'une fois la ligne recopiée dans les fichiers.
+Si la pointe est du mauvais côté (l'épée tenue par la lame) : le modèle a son origine vers la pointe ;
+mettre Garde = 0.8 (au lieu de 0.2) et vérifier avec origine_epee_debug.
+
+Épée rangée (lame « éteinte » avec R, arme toujours en main) : mise au fourreau, à la ceinture,
+accrochée au bassin et orientée comme le corps (elle ne bouge plus quand on regarde autour de soi).
+Elle reprend sa place en main dès qu'on la sort (R).
+
+Épée à la ceinture : wOS dessine à la taille les armes possédées mais pas en main, avec un
+placement prévu pour un petit manche de sabre. Pour les armes Origine, ce placement est remplacé
+(ORIGINE.Armes.Ceinture dans sh_modele.lua) : à gauche de la taille, pointe vers le bas et l'arrière.
+Réglages : Cote, Avant, Haut, Inclinaison (avec la verticale), Roulis, Ecart (entre deux épées),
+Active = false pour ne plus rien dessiner. Les réglages de wOS (rb655_lightsaber_hiltonbelt,
+wOS.ALCS.Config.StopDrawOnBelt) s'appliquent aussi.
+
+Si une erreur de modèle (ERROR rouge) apparaît : le modèle n'est pas téléchargé par le joueur
+(vérifier la collection Workshop) ou le chemin est faux.
+
+
+4. La Lame du Mage
+------------------
+Ses listes (SWEP.ForcePowerList et SWEP.DevestatorList) sont construites depuis wOS
+(wOS.AvailablePowers et wOS.AvailableDevestators) : tous les pouvoirs et ultimes installés, y compris
+ceux des packs Dark Ascension et Icefuse s'ils sont présents, et tout pouvoir ajouté plus tard.
+Sans les packs, leurs pouvoirs sont simplement absents (wOS ignore les noms inconnus).
+Les ultimes demandent Meditate ou Channel Hatred (présents dans sa liste), 100 % de charge et l'arme
+allumée. Il n'existe pas encore de job « Mage » : l'arme n'est donnée par aucun job pour l'instant
+(ajoutez "weapon_origine_mage" aux armes du job quand il existera, dans jobs.lua).
+
+Avec le menu de Force HYBRID de wOS, wOS limite les emplacements à wOS.ALCS.Config.MaximumForceSlots
+(6) : au départ, les 6 premiers pouvoirs de la liste.
+Changer de pouvoir : F ouvre / ferme le choix des pouvoirs, puis les touches 1 à 6 choisissent
+l'emplacement (le sélecteur d'armes Origine laisse alors ces touches à wOS).
+Changer les pouvoirs des emplacements : Alt + F (glisser un pouvoir sur un emplacement, clic droit
+pour vider, croix rouge pour valider).
+Le SWEP:Initialize de wOS n'est pas remplacé (c'est lui qui prépare la jauge de Force et les pouvoirs).
+
+
+5. Tests à faire en jeu
+-----------------------
+- Avec ALCS et ses packs, puis sans les packs : la Lame du Mage n'affiche que les pouvoirs présents.
+- Aucune lame, lueur ni traînée ; seul le manche est visible. Un coup touche à la même distance.
+- Aucun son de sabre laser : allumage, bourdonnement, extinction, balancement, coup dans un mur,
+  coup sur un joueur, choc entre deux lames.
+- Frapper un mur : ni marque de brûlure, ni étincelles.
+- Marcher dans la lame d'un joueur qui ne frappe pas, ou se faire traverser quand il se tourne :
+  aucun dégât. Un coup normal et un coup lourd font leurs dégâts.
+- Les armes de faction n'ont que le saut de Force ; le Mage peut méditer, se charger à 100 %, lancer un ultime.
+- Un joueur à terre ou ligoté ne peut utiliser aucun pouvoir (origine_mise_a_terre).
+- Un pouvoir offensif du Mage sur un Descendant du Runiste est réduit par sa résistance magique.
