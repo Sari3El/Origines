@@ -128,10 +128,17 @@ Chaque job n'a que le toolgun, le physics gun, le gravity gun, le SWEP `origine_
 le long du corps) et la sacoche. Pas de clés, rien de plus pour les admins. Uniques (max 1) : Capitaine de la Milice, L'Originel, Banquier.
 Aucune police DarkRP (`C.DesactiverPolice` : avis de recherche, mandats, prison, couvre-feu, licences retirés). Chaque faction a son chat de groupe (`/g`).
 
-Dans `darkrpmodification/lua/darkrp_config/disabled_defaults.lua` :
+`darkrpmodification/lua/darkrp_config/disabled_defaults.lua` (fourni, déjà réglé) :
 - `["f4menu"] = true` pour couper le menu F4 (l'addon le bloque aussi : `C.DesactiverF4`) ;
+- `["hungermod"] = false` : module faim activé (jauge de nourriture du HUD) ;
 - les jobs de base de DarkRP (`citizen`, `cp`, `mayor`, `gangster`, `mobboss`, `gundealer`, `medic`,
-  `chief`, `hobo`) à `true`, pour ne garder que ceux de ce fichier.
+  `chief`, `hobo`, `cook`) à `true`, pour ne garder que ceux de ce fichier ;
+- armes, munitions, entités modernes (imprimante à billets, labos…), agendas, groupes de portes et chats
+  de groupe police / gangsters de DarkRP retirés.
+Les autres fichiers de `darkrpmodification` sont ceux de la version officielle
+(https://github.com/FPtje/darkrpmodification), non modifiés. DarkRP lui-même va dans
+`garrysmod/gamemodes/darkrp/` (https://github.com/FPtje/DarkRP, ou Workshop 248302805), serveur lancé
+avec le gamemode `darkrp`.
 
 ## Menu staff `!origine`
 
